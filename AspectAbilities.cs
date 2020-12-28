@@ -235,69 +235,94 @@ namespace TheMysticSword.AspectAbilities
         {
             public static void Init()
             {
+                On.RoR2.ProjectileCatalog.Init += (orig) =>
+                {
+                    orig();
+                    RegisterProjectilesToCatalog();
+                };
+
+                On.RoR2.BodyCatalog.Init += (orig) =>
+                {
+                    orig();
+                    RegisterBodiesToCatalog();
+                };
                 On.RoR2.BodyCatalog.CCBodyReloadAll += (orig, self) =>
                 {
                     orig(self);
-                    foreach (GameObject body in registeredBodies)
-                    {
-                        RegisterBody(body);
-                    }
+                    RegisterBodiesToCatalog();
                 };
 
+                On.RoR2.MasterCatalog.Init += (orig) =>
+                {
+                    orig();
+                    RegisterMastersToCatalog(registeredMasters.ToArray());
+                };
 
+                On.RoR2.EffectCatalog.Init += (orig) =>
+                {
+                    orig();
+                    RegisterEffectsToCatalog();
+                };
                 On.RoR2.EffectCatalog.CCEffectsReload += (orig, self) =>
                 {
                     orig(self);
-                    foreach (GameObject effect in registeredEffects)
-                    {
-                        RegisterEffect(effect);
-                    }
+                    RegisterEffectsToCatalog();
                 };
             }
 
             private static List<GameObject> registeredProjectiles = new List<GameObject>();
             internal static void RegisterProjectile(GameObject prefab)
             {
-                GameObject[] entries = ArrayUtils.Clone(typeof(ProjectileCatalog).GetFieldValue<GameObject[]>("projectilePrefabs"));
                 registeredProjectiles.Add(prefab);
-                ArrayUtils.ArrayAppend(ref entries, prefab);
+            }
+            private static void RegisterProjectilesToCatalog()
+            {
+                GameObject[] entries = ArrayUtils.Clone(typeof(ProjectileCatalog).GetFieldValue<GameObject[]>("projectilePrefabs"));
+                entries = entries.Concat(registeredProjectiles).ToArray();
                 typeof(ProjectileCatalog).InvokeMethod("SetProjectilePrefabs", new object[] { entries });
             }
 
             private static List<GameObject> registeredBodies = new List<GameObject>();
             internal static void RegisterBody(GameObject prefab)
             {
-                GameObject[] entries = ArrayUtils.Clone(typeof(BodyCatalog).GetFieldValue<GameObject[]>("bodyPrefabs"));
                 registeredBodies.Add(prefab);
-                ArrayUtils.ArrayAppend(ref entries, prefab);
+            }
+            private static void RegisterBodiesToCatalog()
+            {
+                GameObject[] entries = ArrayUtils.Clone(typeof(BodyCatalog).GetFieldValue<GameObject[]>("bodyPrefabs"));
+                entries = entries.Concat(registeredBodies).ToArray();
                 typeof(BodyCatalog).InvokeMethod("SetBodyPrefabs", new object[] { entries });
             }
 
+            private static List<GameObject> registeredMasters = new List<GameObject>();
+            internal static void RegisterMaster(GameObject prefab)
+            {
+                registeredMasters.Add(prefab);
+            }
+            private static void RegisterMastersToCatalog(GameObject[] prefabs)
+            {
+                GameObject[] entries = ArrayUtils.Clone(typeof(MasterCatalog).GetFieldValue<GameObject[]>("masterPrefabs"));
+                entries = entries.Concat(prefabs).ToArray();
+                typeof(MasterCatalog).SetFieldValue("nameToIndexMap", new Dictionary<string, MasterCatalog.MasterIndex>());
+                typeof(MasterCatalog).InvokeMethod("SetEntries", new object[] { entries });
+            }
+
             private static List<EffectDef> effectDefs = new List<EffectDef>();
-            private static List<GameObject> registeredEffects = new List<GameObject>();
             internal static void RegisterEffect(GameObject prefab)
             {
+                effectDefs.Add(new EffectDef
+                {
+                    prefab = prefab,
+                    prefabEffectComponent = prefab.GetComponent<EffectComponent>(),
+                    prefabVfxAttributes = prefab.GetComponent<VFXAttributes>(),
+                    prefabName = prefab.name,
+                    spawnSoundEventName = prefab.GetComponent<EffectComponent>().soundName
+                });
+            }
+            private static void RegisterEffectsToCatalog()
+            {
                 EffectDef[] entries = ArrayUtils.Clone(typeof(EffectCatalog).GetFieldValue<EffectDef[]>("entries"));
-                EffectDef def;
-                if (!registeredEffects.Contains(prefab))
-                {
-                    def = new EffectDef
-                    {
-                        prefab = prefab,
-                        prefabEffectComponent = prefab.GetComponent<EffectComponent>(),
-                        prefabVfxAttributes = prefab.GetComponent<VFXAttributes>(),
-                        prefabName = prefab.name,
-                        spawnSoundEventName = prefab.GetComponent<EffectComponent>().soundName
-                    };
-                    effectDefs.Add(def);
-                    registeredEffects.Add(prefab);
-                }
-                else
-                {
-                    def = effectDefs[registeredEffects.IndexOf(prefab)];
-                }
-
-                ArrayUtils.ArrayAppend(ref entries, def);
+                entries = entries.Concat(effectDefs).ToArray();
                 typeof(EffectCatalog).InvokeMethod("SetEntries", new object[] { entries });
             }
         }

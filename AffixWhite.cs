@@ -192,16 +192,8 @@ namespace TheMysticSword.AspectAbilities
             iceCrystalExplosionEffect.transform.Find("Particles").Find("LongLifeNoiseTrails").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
             iceCrystalExplosionEffect.transform.Find("Particles").Find("Dash, Bright").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
 
-            On.RoR2.BodyCatalog.Init += (orig) =>
-            {
-                orig();
-                AspectAbilities.Assets.RegisterBody(iceCrystal);
-            };
-            On.RoR2.EffectCatalog.Init += (orig) =>
-            {
-                orig();
-                AspectAbilities.Assets.RegisterEffect(iceCrystalExplosionEffect);
-            };
+            AspectAbilities.Assets.RegisterBody(iceCrystal);
+            AspectAbilities.Assets.RegisterEffect(iceCrystalExplosionEffect);
 
             AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixWhite, 45f,
                 (self) =>
