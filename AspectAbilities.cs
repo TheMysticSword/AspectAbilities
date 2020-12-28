@@ -35,7 +35,7 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
                 BodyFields bodyFields = self.GetComponent<BodyFields>();
-                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && self.inputBank && self.isElite && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && bodyFields)
+                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Contains(self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && bodyFields)
                 {
                     bool spawning = false;
                     EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
