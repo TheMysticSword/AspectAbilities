@@ -159,13 +159,16 @@ namespace TheMysticSword.AspectAbilities
                     // spawn the urchin facing outward of the circle
                     if (NetworkServer.active)
                     {
-                        GameObject urchinMasterObject = Object.Instantiate(malachiteUrchinOrbitalMaster, FindSuitablePosition(freeIndex), Quaternion.LookRotation(FindSuitableAngle(freeIndex)));
-                        CharacterMaster urchinMaster = urchinMasterObject.GetComponent<CharacterMaster>();
-                        urchinMaster.teamIndex = characterBody.teamComponent.teamIndex;
-                        NetworkServer.Spawn(urchinMasterObject);
+                        CharacterMaster urchinMaster = new MasterSummon
+                        {
+                            masterPrefab = malachiteUrchinOrbitalMaster,
+                            position = FindSuitablePosition(freeIndex),
+                            rotation = Quaternion.LookRotation(FindSuitableAngle(freeIndex)),
+                            summonerBodyObject = characterBody.gameObject,
+                            ignoreTeamMemberLimit = true
+                        }.Perform();
                         if (urchinMaster && NetworkServer.active)
                         {
-                            urchinMaster.SpawnBodyHere();
                             urchins.Add(new UrchinHolder(freeIndex, urchinMaster.GetBody()));
                             AspectAbilities.BodyFields bodyFields = urchinMaster.GetBody().gameObject.GetComponent<AspectAbilities.BodyFields>();
                             if (bodyFields)
