@@ -129,6 +129,7 @@ namespace TheMysticSword.AspectAbilities
                     respawn--;
                     total = Mathf.Clamp(total + 1, 0, totalMax);
                     // create a list of index statuses - we will use it to find a free slot for a new urchin
+                    RefreshSlots();
                     List<bool> indexStatus = Enumerable.Repeat(false, total).ToList();
                     foreach (UrchinHolder urchin in urchins)
                     {
@@ -147,11 +148,14 @@ namespace TheMysticSword.AspectAbilities
                     // if the free slot index exceeds the total amount of slots, kill the oldest urchin and put the new one in its slot
                     if (freeIndex >= total)
                     {
-                        UrchinHolder oldest = urchins.Aggregate(urchins.First(), (current, next) => next.spawnTime < current.spawnTime ? next : current);
-                        if (oldest.body.healthComponent) oldest.body.healthComponent.Suicide();
+                        UrchinHolder oldest = urchins.Aggregate((current, next) => next.spawnTime < current.spawnTime ? next : current);
+                        if (oldest.body.healthComponent)
+                        {
+                            oldest.body.healthComponent.Suicide();
+                            RefreshSlots();
+                        }
                         freeIndex = oldest.index;
                     }
-                    RefreshSlots();
                     // spawn the urchin facing outward of the circle
                     if (NetworkServer.active)
                     {
