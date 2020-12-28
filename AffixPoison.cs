@@ -14,10 +14,14 @@ namespace TheMysticSword.AspectAbilities
 
         public static void Init()
         {
+            // clone the body and the master in case we want to change the stats of the urchins
             malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster");
             malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody");
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();
             malachiteUrchinOrbitalMaster.GetComponent<CharacterMaster>().bodyPrefab = malachiteUrchinOrbitalBody;
+
+            AssetManager.RegisterBody(malachiteUrchinOrbitalBody);
+            AssetManager.RegisterMaster(malachiteUrchinOrbitalMaster);
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
             {
