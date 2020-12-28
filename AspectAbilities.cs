@@ -32,54 +32,24 @@ namespace TheMysticSword.AspectAbilities
             AffixHaunted.Init();
 
             // make elites auto-use equipment
-            IL.RoR2.CharacterBody.FixedUpdate += (il) =>
+            On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
-                ILCursor c = new ILCursor(il);
-                // let's use a series of TryGotoNext calls instead of a big one just to be extra safe and not break mod compatibility
-                c.TryGotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<CharacterBody>("UpdateTeslaCoil")
-                );
-                c.TryGotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<CharacterBody>("UpdateBeetleGuardAllies")
-                );
-                c.TryGotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<CharacterBody>("UpdatePowerWardSummon")
-                );
-                c.TryGotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<CharacterBody>("UpdateHelfire")
-                );
-                c.Emit(OpCodes.Ldarg_0);
-                c.EmitDelegate<System.Action<CharacterBody>>((self) =>
+                BodyFields bodyFields = self.GetComponent<BodyFields>();
+                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && self.inputBank && self.isElite && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && bodyFields)
                 {
-                    BodyFields bodyFields = self.GetComponent<BodyFields>();
-                    if (self.equipmentSlot && self.equipmentSlot.stock > 0 && self.inputBank && self.isElite && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && bodyFields)
+                    bool spawning = false;
+                    EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
+                    foreach (EntityStateMachine stateMachine in stateMachines)
                     {
-                        bool spawning = false;
-                        GameObject bodyInstanceObject = self.master.GetPropertyValue<GameObject>("bodyInstanceObject");
-                        bodyInstanceObject = self.gameObject;
-                        if (bodyInstanceObject)
+                        if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
                         {
-                            EntityStateMachine[] stateMachines = bodyInstanceObject.GetComponents<EntityStateMachine>();
-                            foreach (EntityStateMachine stateMachine in stateMachines)
-                            {
-                                if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
-                                {
-                                    spawning = true;
-                                    break;
-                                }
-                            }
+                            spawning = true;
+                            break;
                         }
-                        if (!spawning && bodyFields.aiUseDelay <= 0) self.inputBank.activateEquipment.PushState(true);
                     }
-                });
+                    if (!spawning && bodyFields.aiUseDelay <= 0) self.inputBank.activateEquipment.PushState(true);
+                }
+                orig(self);
             };
             // when spawning in a stage, delay enemy elite aspect usage
             Stage.onStageStartGlobal += (stage) =>
