@@ -542,18 +542,20 @@ namespace TheMysticSword.AspectAbilities
                         characterBody.SetFieldValue("statsDirty", true);
                         decayStatsUpdateTime = 0f;
                     }
-                    if (NetworkServer.active)
-                    {
-                        while (((current / decayTotal) * decayTime) < (characterBody.GetBuffCount(iceCrystalDebuff) - 1))
-                        {
-                            characterBody.RemoveBuff(iceCrystalDebuff);
-                        }
-                    }
                     if (current < 0f)
                     {
                         characterBody.SetFieldValue("statsDirty", true);
                         current = 0f;
                         if (NetworkServer.active) characterBody.RemoveBuff(iceCrystalDebuff);
+                    } else
+                    {
+                        if (NetworkServer.active)
+                        {
+                            while (((current / decayTotal) * decayTime) < (characterBody.GetBuffCount(iceCrystalDebuff) - 1))
+                            {
+                                characterBody.RemoveBuff(iceCrystalDebuff);
+                            }
+                        }
                     }
                 }
             }
