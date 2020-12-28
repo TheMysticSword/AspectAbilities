@@ -10,7 +10,7 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 ![](https://i.imgur.com/3nEkbBH.png)
 
 ---
-###### Glacial - deploy a destructible debuff ward that reduces the maximum health of every enemy inside it (30s)
+###### Glacial - deploy a destructible debuff ward that reduces the maximum health of every enemy inside it (45s)
 ![](https://i.imgur.com/jIFvoX4.png)
 
 ---
@@ -23,6 +23,11 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.2.1:
+* Fixed Artifact of Enigma rerolling aspects
+* Fixed Glacial crystal debuff not wearing off in multiplayer
+* Fixed Malachite aspect sometimes stopping spawning urchins on use
+* Fixed Malachite Urchins not being treated as minions
 #### 1.2.0:
 * Blazing:
     * Firing Cooldown: ~~0.175s~~ ⇒ 0.3s
