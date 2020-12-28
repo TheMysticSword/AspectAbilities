@@ -55,7 +55,7 @@ namespace TheMysticSword.AspectAbilities
 
             BlazingMissileControllerTweaks.targetPrefab = targetPrefab;
 
-            AspectAbilities.Assets.RegisterProjectile(fireMissile);
+            AssetManager.RegisterProjectile(fireMissile);
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
             {
