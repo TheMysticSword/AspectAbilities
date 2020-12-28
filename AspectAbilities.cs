@@ -51,6 +51,13 @@ namespace TheMysticSword.AspectAbilities
                 }
                 orig(self);
             };
+            // make enigma artifact not reroll aspects
+            On.RoR2.Artifacts.EnigmaArtifactManager.OnServerEquipmentActivated += (orig, equipmentSlot, equipmentIndex) =>
+            {
+                if (registeredAspectAbilities.Contains(equipmentIndex)) return;
+                orig(equipmentSlot, equipmentIndex);
+            };
+
             // when spawning in a stage, delay enemy elite aspect usage
             Stage.onStageStartGlobal += (stage) =>
             {
