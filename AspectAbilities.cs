@@ -15,7 +15,7 @@ using HG;
 namespace TheMysticSword.AspectAbilities
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
-    [BepInPlugin("com.TheMysticSword.AspectAbilities", "Aspect Abilities", "1.2.0")]
+    [BepInPlugin("com.TheMysticSword.AspectAbilities", "Aspect Abilities", "1.2.1")]
     [R2APISubmoduleDependency(nameof(BuffAPI), nameof(EntityAPI), nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilities : BaseUnityPlugin
     {
