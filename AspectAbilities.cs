@@ -28,6 +28,7 @@ namespace TheMysticSword.AspectAbilities
         public void Awake()
         {
             AssetManager.Init();
+            LanguageManager.Init();
 
             AffixRed.Init();
             AffixBlue.Init();
@@ -86,25 +87,6 @@ namespace TheMysticSword.AspectAbilities
             {
                 orig(self);
                 self.gameObject.AddComponent<BodyFields>();
-            };
-
-            On.RoR2.Language.LoadStrings += (orig, self) =>
-            {
-                orig(self);
-                foreach (KeyValuePair<EquipmentIndex, Dictionary<string, string>> keyValuePair in aspectAbilityStringTokens)
-                {
-                    OverlayEquipmentString(self, keyValuePair.Key, "pickup");
-                }
-            };
-            Language.onCurrentLanguageChanged += () =>
-            {
-                if (Language.currentLanguage != null)
-                {
-                    foreach (KeyValuePair<EquipmentIndex, Dictionary<string, string>> keyValuePair in aspectAbilityStringTokens)
-                    {
-                        SaveEquipmentString(Language.currentLanguage, keyValuePair.Key, "pickup");
-                    }
-                }
             };
 
             IL.RoR2.HealthComponent.TakeDamage += (il) =>
@@ -166,37 +148,7 @@ namespace TheMysticSword.AspectAbilities
 
         public void Update()
         {
-            if (reloadLanguage)
-            {
-                reloadLanguage = false;
-                Language.CCLanguageReload(new ConCommandArgs());
-            }
-        }
-
-        internal static Dictionary<EquipmentIndex, Dictionary<string, string>> aspectAbilityStringTokens = new Dictionary<EquipmentIndex, Dictionary<string, string>>();
-        internal static bool reloadLanguage = false;
-        internal static void SaveEquipmentString(Language language, EquipmentIndex equipmentIndex, string token)
-        {
-            if (aspectAbilityStringTokens.ContainsKey(equipmentIndex))
-            {
-                if (!aspectAbilityStringTokens[equipmentIndex].ContainsKey(token + "_" + language.name))
-                {
-                    aspectAbilityStringTokens[equipmentIndex].Add(token + "_" + language.name, language.GetLocalizedStringByToken("ASPECTABILITIES_" + equipmentIndex.ToString().ToUpper() + "_" + token.ToUpper()));
-                    reloadLanguage = true;
-                }
-            }
-        }
-        internal static void OverlayEquipmentString(Language language, EquipmentIndex equipmentIndex, string token)
-        {
-            if (aspectAbilityStringTokens.ContainsKey(equipmentIndex) && aspectAbilityStringTokens[equipmentIndex].TryGetValue(token + "_" + language.name, out string newValue))
-            {
-                string oldValue = language.GetLocalizedStringByToken("EQUIPMENT_" + equipmentIndex.ToString().ToUpper() + "_" + token.ToUpper());
-                LanguageAPI.Add(
-                    "EQUIPMENT_" + equipmentIndex.ToString().ToUpper() + "_" + token.ToUpper(),
-                    oldValue + " " + newValue,
-                    language.name
-                );
-            }
+            LanguageManager.Update();
         }
 
         internal static List<EquipmentIndex> registeredAspectAbilities = new List<EquipmentIndex>();
@@ -208,7 +160,7 @@ namespace TheMysticSword.AspectAbilities
                 EquipmentCatalog.GetEquipmentDef(equipmentIndex).cooldown = cooldown;
             };
 
-            aspectAbilityStringTokens.Add(equipmentIndex, new Dictionary<string, string>());
+            LanguageManager.aspectAbilityStringTokens.Add(equipmentIndex, new Dictionary<string, string>());
 
             On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentIndex2) =>
             {
