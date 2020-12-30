@@ -15,6 +15,7 @@ using HG;
 namespace TheMysticSword.AspectAbilities
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
+    [BepInDependency(JarlykMods.Durability.DurabilityPlugin.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [R2APISubmoduleDependency(nameof(BuffAPI), nameof(EntityAPI), nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilities : BaseUnityPlugin
@@ -144,6 +145,41 @@ namespace TheMysticSword.AspectAbilities
                     c.Emit(OpCodes.Brfalse, label);
                 }
             };
+
+            // make Jarlyk's EquipmentDurability not affect enemies
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.jarlyk.durability"))
+            {
+                new MonoMod.RuntimeDetour.ILHook(
+                    typeof(JarlykMods.Durability.DurabilityPlugin).GetMethod("EquipmentSlotOnExecuteIfReady", bindingFlagAll),
+                    il =>
+                    {
+                        ILCursor c = new ILCursor(il);
+                        ILLabel label = null;
+                        if (c.TryGotoNext(MoveType.After,
+                            x => x.MatchLdarg(2),
+                            x => x.MatchCallvirt<EquipmentSlot>("get_stock"),
+                            x => x.MatchStloc(0),
+                            x => x.MatchLdarg(1),
+                            x => x.MatchLdarg(2),
+                            x => x.MatchCallvirt("On.RoR2.EquipmentSlot/orig_ExecuteIfReady", "Invoke"),
+                            x => x.MatchDup(),
+                            x => x.MatchBrfalse(out label),
+                            x => x.MatchLdarg(2),
+                            x => x.MatchCallvirt<EquipmentSlot>("get_stock"),
+                            x => x.MatchLdloc(0),
+                            x => x.MatchBge(out _)
+                        ))
+                        {
+                            c.Emit(OpCodes.Ldarg_2);
+                            c.EmitDelegate<System.Func<EquipmentSlot, bool>>((equipmentSlot) =>
+                            {
+                                return registeredAspectAbilities.Contains(equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
+                            });
+                            c.Emit(OpCodes.Brtrue, label);
+                        }
+                    }
+                );
+            }
         }
 
         public void Update()
