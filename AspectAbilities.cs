@@ -147,38 +147,9 @@ namespace TheMysticSword.AspectAbilities
             };
 
             // make Jarlyk's EquipmentDurability not affect enemies
-            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.jarlyk.durability"))
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(JarlykMods.Durability.DurabilityPlugin.PluginGuid))
             {
-                new MonoMod.RuntimeDetour.ILHook(
-                    typeof(JarlykMods.Durability.DurabilityPlugin).GetMethod("EquipmentSlotOnExecuteIfReady", bindingFlagAll),
-                    il =>
-                    {
-                        ILCursor c = new ILCursor(il);
-                        ILLabel label = null;
-                        if (c.TryGotoNext(MoveType.After,
-                            x => x.MatchLdarg(2),
-                            x => x.MatchCallvirt<EquipmentSlot>("get_stock"),
-                            x => x.MatchStloc(0),
-                            x => x.MatchLdarg(1),
-                            x => x.MatchLdarg(2),
-                            x => x.MatchCallvirt("On.RoR2.EquipmentSlot/orig_ExecuteIfReady", "Invoke"),
-                            x => x.MatchDup(),
-                            x => x.MatchBrfalse(out label),
-                            x => x.MatchLdarg(2),
-                            x => x.MatchCallvirt<EquipmentSlot>("get_stock"),
-                            x => x.MatchLdloc(0),
-                            x => x.MatchBge(out _)
-                        ))
-                        {
-                            c.Emit(OpCodes.Ldarg_2);
-                            c.EmitDelegate<System.Func<EquipmentSlot, bool>>((equipmentSlot) =>
-                            {
-                                return registeredAspectAbilities.Contains(equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
-                            });
-                            c.Emit(OpCodes.Brtrue, label);
-                        }
-                    }
-                );
+                EquipmentDurabilityFix.Init();
             }
         }
 
@@ -232,6 +203,43 @@ namespace TheMysticSword.AspectAbilities
             public void FixedUpdate()
             {
                 aiUseDelay -= Time.fixedDeltaTime;
+            }
+        }
+
+        public static class EquipmentDurabilityFix
+        {
+            public static void Init()
+            {
+                new MonoMod.RuntimeDetour.ILHook(
+                    typeof(JarlykMods.Durability.DurabilityPlugin).GetMethod("EquipmentSlotOnExecuteIfReady", bindingFlagAll),
+                    il =>
+                    {
+                        ILCursor c = new ILCursor(il);
+                        ILLabel label = null;
+                        if (c.TryGotoNext(MoveType.After,
+                            x => x.MatchLdarg(2),
+                            x => x.MatchCallvirt<EquipmentSlot>("get_stock"),
+                            x => x.MatchStloc(0),
+                            x => x.MatchLdarg(1),
+                            x => x.MatchLdarg(2),
+                            x => x.MatchCallvirt("On.RoR2.EquipmentSlot/orig_ExecuteIfReady", "Invoke"),
+                            x => x.MatchDup(),
+                            x => x.MatchBrfalse(out label),
+                            x => x.MatchLdarg(2),
+                            x => x.MatchCallvirt<EquipmentSlot>("get_stock"),
+                            x => x.MatchLdloc(0),
+                            x => x.MatchBge(out _)
+                        ))
+                        {
+                            c.Emit(OpCodes.Ldarg_2);
+                            c.EmitDelegate<System.Func<EquipmentSlot, bool>>((equipmentSlot) =>
+                            {
+                                return registeredAspectAbilities.Contains(equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
+                            });
+                            c.Emit(OpCodes.Brtrue, label);
+                        }
+                    }
+                );
             }
         }
     }
