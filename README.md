@@ -23,6 +23,9 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.2.2:
+* Fixed ice curse causing errors with [Rein's Sniper](https://thunderstore.io/package/Rein/Sniper/)
+* Added temporary fix for [Jarlyk's EquipmentDurability](https://thunderstore.io/package/Jarlyk/EquipmentDurability/)
 #### 1.2.1:
 * Fixed Artifact of Enigma rerolling aspects
 * Fixed Glacial crystal debuff not wearing off in multiplayer
