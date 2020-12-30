@@ -22,7 +22,7 @@ namespace TheMysticSword.AspectAbilities
     {
         const string PluginGUID = "com.TheMysticSword.AspectAbilities";
         const string PluginName = "AspectAbilities";
-        const string PluginVersion = "1.2.1";
+        const string PluginVersion = "1.2.2";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
