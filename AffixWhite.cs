@@ -62,7 +62,8 @@ namespace TheMysticSword.AspectAbilities
                     CurseCount curseCount = characterBody.GetComponent<CurseCount>();
                     if (curseCount.current > 0)
                     {
-                        characterBody.InvokeMethod("set_cursePenalty", characterBody.cursePenalty + curseCount.current);
+                        // need to use this here instead of characterBody.InvokeMethod - Rein's Sniper subclasses CharacterBody and InvokeMethod can't find the property on that new subclass
+                        typeof(CharacterBody).GetProperty("cursePenalty").SetValue(characterBody, characterBody.cursePenalty + curseCount.current);
                     }
                 });
                 // don't regen health when this curse penalty is removed
