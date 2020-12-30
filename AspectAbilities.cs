@@ -15,10 +15,14 @@ using HG;
 namespace TheMysticSword.AspectAbilities
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
-    [BepInPlugin("com.TheMysticSword.AspectAbilities", "Aspect Abilities", "1.2.1")]
+    [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [R2APISubmoduleDependency(nameof(BuffAPI), nameof(EntityAPI), nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilities : BaseUnityPlugin
     {
+        const string PluginGUID = "com.TheMysticSword.AspectAbilities";
+        const string PluginName = "AspectAbilities";
+        const string PluginVersion = "1.2.1";
+
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
         public void Awake()
