@@ -23,6 +23,25 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.3.0:
+* Elite enemies no longer use aspects immediately after spawning
+* Blazing:
+    * Missiles no longer spread around the target position
+    * Enemy missiles now target the entity they are currently attacking, player missiles now target the closest enemy to the crosshair
+* Overloading:
+    * Enemies now teleport to the entity they are currently attacking instead of teleporting to the closest target
+* Glacial:
+    * HP Reduction Per Second: ~~4%~~ ⇒ 15%
+    * Radius: ~~16m~~ ⇒ 35m
+    * Health: ~~200 (+60 per level)~~ ⇒ 80 (+24 per level)
+    * Crystals Per Team: ~~5~~ ⇒ 3
+    * Now shoots the crystal as a mortar projectile instead of spawning the crystal immediately
+    * Now starts out at 0m effective radius and grows to maximum radius over time
+    * Overlapping crystal auras do not apply the debuff multiple times in one frame anymore
+    * Debuff now reduces health based on current health fraction. This means that if you had 50% health before getting debuffed, your current health will always be adjusted to be 50% of your maximum health minus curse.
+* Fixed Blast Shower not clearing the Glacial crystal debuff
+* Fixed Glacial crystals showing up as "The Planet" when pinged
+* Fixed Overloading teleportation causing errors when trying to teleport to a Glacial debuff crystal
 #### 1.2.2:
 * Fixed ice curse causing errors with [Rein's Sniper](https://thunderstore.io/package/Rein/Sniper/)
 * Added temporary fix for [Jarlyk's EquipmentDurability](https://thunderstore.io/package/Jarlyk/EquipmentDurability/)
