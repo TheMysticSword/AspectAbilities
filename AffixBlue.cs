@@ -82,7 +82,7 @@ namespace TheMysticSword.AspectAbilities
 
                     self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
                     return true;
-                });
+                }, Mathf.Infinity);
         }
 
         public class OverloadingBlinkController : NetworkBehaviour
