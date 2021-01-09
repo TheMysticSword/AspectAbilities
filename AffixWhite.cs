@@ -26,7 +26,7 @@ namespace TheMysticSword.AspectAbilities
         public static Color iceCrystalColor = new Color(209f / 255f, 236f / 255f, 236f / 255f);
         public static BuffIndex iceCrystalDebuff;
         public static float cursePenaltyStackFrequency = 0.2f;
-        public static float cursePenaltyPerStack = (4f / 100f) * cursePenaltyStackFrequency;
+        public static float cursePenaltyPerStack = (15f / 100f) * cursePenaltyStackFrequency;
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
 
         public static int maxCrystals = 3;
