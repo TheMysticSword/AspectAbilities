@@ -97,6 +97,7 @@ namespace TheMysticSword.AspectAbilities
                     else if (healthGained < 0)
                     {
                         float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.last)));
+                        // don't reduce below 1
                         if (takeDamage > characterBody.healthComponent.Networkhealth)
                         {
                             takeDamage = characterBody.healthComponent.Networkhealth - 1f;
@@ -129,6 +130,7 @@ namespace TheMysticSword.AspectAbilities
                     else if (healthGained < 0)
                     {
                         float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.last)));
+                        // don't reduce below 1
                         if (takeDamage > characterBody.healthComponent.Networkshield)
                         {
                             takeDamage = characterBody.healthComponent.Networkshield - 1f;
