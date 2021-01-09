@@ -29,6 +29,8 @@ namespace TheMysticSword.AspectAbilities
         public static float cursePenaltyPerStack = (4f / 100f) * cursePenaltyStackFrequency;
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
 
+        public static int maxCrystals = 3;
+
         public static void Init()
         {
             iceCrystalDebuff = BuffAPI.Add(new CustomBuff(new BuffDef
