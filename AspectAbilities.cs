@@ -42,7 +42,7 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
                 BodyFields bodyFields = self.GetComponent<BodyFields>();
-                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Contains(self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && bodyFields)
+                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue)
                 {
                     bool spawning = false;
                     EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
@@ -61,7 +61,7 @@ namespace TheMysticSword.AspectAbilities
             // make enigma artifact not reroll aspects
             On.RoR2.Artifacts.EnigmaArtifactManager.OnServerEquipmentActivated += (orig, equipmentSlot, equipmentIndex) =>
             {
-                if (registeredAspectAbilities.Contains(equipmentIndex)) return;
+                if (registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == equipmentSlot.equipmentIndex)) return;
                 orig(equipmentSlot, equipmentIndex);
             };
 
@@ -159,8 +159,6 @@ namespace TheMysticSword.AspectAbilities
             LanguageManager.Update();
         }
 
-        internal static List<EquipmentIndex> registeredAspectAbilities = new List<EquipmentIndex>();
-        internal static void RegisterAspectAbility(EquipmentIndex equipmentIndex, float cooldown, System.Func<EquipmentSlot, bool> onUse)
         public struct AspectAbility
         {
             public AspectAbility(EquipmentIndex equipmentIndex, float aiMaxDistance)
@@ -173,6 +171,8 @@ namespace TheMysticSword.AspectAbilities
             public float aiMaxDistance;
         }
 
+        internal static List<AspectAbility> registeredAspectAbilities = new List<AspectAbility>();
+        internal static void RegisterAspectAbility(EquipmentIndex equipmentIndex, float cooldown, System.Func<EquipmentSlot, bool> onUse, float aiMaxDistance = 60f)
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
@@ -191,7 +191,10 @@ namespace TheMysticSword.AspectAbilities
                 return orig(self, equipmentIndex2);
             };
 
-            registeredAspectAbilities.Add(equipmentIndex);
+            registeredAspectAbilities.Add(new AspectAbility{
+                equipmentIndex = equipmentIndex,
+                aiMaxDistance = aiMaxDistance
+            });
         }
 
         internal static float GetEliteDamageMultiplier(EliteIndex eliteIndex)
@@ -261,7 +264,7 @@ namespace TheMysticSword.AspectAbilities
                             c.Emit(OpCodes.Ldarg_2);
                             c.EmitDelegate<System.Func<EquipmentSlot, bool>>((equipmentSlot) =>
                             {
-                                return registeredAspectAbilities.Contains(equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
+                                return registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
                             });
                             c.Emit(OpCodes.Brtrue, label);
                         }
