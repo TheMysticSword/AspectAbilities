@@ -161,6 +161,18 @@ namespace TheMysticSword.AspectAbilities
 
         internal static List<EquipmentIndex> registeredAspectAbilities = new List<EquipmentIndex>();
         internal static void RegisterAspectAbility(EquipmentIndex equipmentIndex, float cooldown, System.Func<EquipmentSlot, bool> onUse)
+        public struct AspectAbility
+        {
+            public AspectAbility(EquipmentIndex equipmentIndex, float aiMaxDistance)
+            {
+                this.equipmentIndex = equipmentIndex;
+                this.aiMaxDistance = aiMaxDistance;
+            }
+
+            public EquipmentIndex equipmentIndex;
+            public float aiMaxDistance;
+        }
+
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
