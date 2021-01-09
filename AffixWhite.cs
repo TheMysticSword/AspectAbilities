@@ -39,7 +39,7 @@ namespace TheMysticSword.AspectAbilities
             iceCrystalDebuff = BuffAPI.Add(new CustomBuff(new BuffDef
             {
                 buffColor = iceCrystalColor,
-                canStack = true,
+                canStack = false,
                 iconPath = "Textures/BuffIcons/texBuffPulverizeIcon",
                 isDebuff = true,
                 name = "AspectAbilitiesIceCrystalDebuff"
