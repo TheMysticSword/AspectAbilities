@@ -140,6 +140,24 @@ namespace TheMysticSword.AspectAbilities
                 CurseCount curseCount = self.GetComponent<CurseCount>();
                 curseCount.last = curseCount.current;
             };
+            /*
+             * normally, the curse value is reduced by the CurseCount instance
+             * however, if the buff gets manually removed (e.g. Blast Shower), nothing happens because the curse value gets re-set by CurseCount on the next frame
+             * that's why we need to manually reduce the curse count when all debuff stacks are lost
+             */
+            On.RoR2.CharacterBody.OnBuffFinalStackLost += (orig, self, buffDef) =>
+            {
+                orig(self, buffDef);
+                if (buffDef.buffIndex == iceCrystalDebuff)
+                {
+                    CurseCount curseCount = self.GetComponent<CurseCount>();
+                    if (curseCount.current > 0f)
+                    {
+                        curseCount.current = 0f;
+                        self.SetFieldValue("statsDirty", true);
+                    }
+                }
+            };
 
             // create glacial ward prefab
             iceCrystal = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/TimeCrystalBody"), "AspectAbilitiesIceCrystalBody");
