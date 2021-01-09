@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using RoR2;
+using RoR2.CharacterAI;
 using R2API;
 using R2API.Utils;
 using R2API.Networking;
@@ -192,6 +193,20 @@ namespace TheMysticSword.AspectAbilities
                 }
             }
             return 1f;
+        }
+
+        internal static BaseAI.Target GetAITarget(CharacterMaster characterMaster)
+        {
+            BaseAI[] aiComponents = characterMaster.GetFieldValue<BaseAI[]>("aiComponents");
+            List<BaseAI.Target> targets = new List<BaseAI.Target>();
+            foreach (BaseAI ai in aiComponents)
+            {
+                if (ai.currentEnemy.gameObject)
+                {
+                    targets.Add(ai.currentEnemy);
+                }
+            }
+            return targets.FirstOrDefault();
         }
 
         public class BodyFields : NetworkBehaviour
