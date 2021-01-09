@@ -316,8 +316,6 @@ namespace TheMysticSword.AspectAbilities
             public float rotationTimeMax = 6f;
             public bool effectOnDeath = true;
             public float stopwatch = 0f;
-            public float curseTimer = 0f;
-            public float curseTimerMax = cursePenaltyStackFrequency;
 
             public void Awake()
             {
@@ -480,8 +478,9 @@ namespace TheMysticSword.AspectAbilities
             public float decayTotal = 0f;
             public float decayTime = 3f;
             public float noDecayTime = 0f;
-            public float decayStatsUpdateTime = 0f;
-            public float decayStatsUpdateTimeMax = cursePenaltyStackFrequency;
+            public float updateStatsTime = 0f;
+            public float updateStatsTimeMax = cursePenaltyStackFrequency;
+            public bool canStackNow = true;
 
             public void Awake()
             {
@@ -490,19 +489,20 @@ namespace TheMysticSword.AspectAbilities
 
             public void Stack(float count, float noDecayTime)
             {
-                current += count;
-                this.noDecayTime = noDecayTime + 0.1f;
-                decayTotal = current;
-                characterBody.SetFieldValue("outOfDangerStopwatch", 0f);
-                characterBody.SetFieldValue("statsDirty", true);
-
-                if (NetworkServer.active)
+                if (canStackNow)
                 {
-                    while (characterBody.GetBuffCount(iceCrystalDebuff) < decayTime)
+                    canStackNow = false;
+                    current += count;
+                    this.noDecayTime = noDecayTime + 0.1f;
+                    decayTotal = current;
+                    characterBody.SetFieldValue("outOfDangerStopwatch", 0f);
+                    characterBody.SetFieldValue("statsDirty", true);
+
+                    if (NetworkServer.active)
                     {
-                        characterBody.AddBuff(iceCrystalDebuff);
+                        characterBody.AddTimedBuff(iceCrystalDebuff, decayTime);
+                        new SyncStack(gameObject.GetComponent<NetworkIdentity>().netId, count, noDecayTime).Send(NetworkDestination.Clients);
                     }
-                    new SyncStack(gameObject.GetComponent<NetworkIdentity>().netId, count, noDecayTime).Send(NetworkDestination.Clients);
                 }
             }
 
@@ -549,22 +549,24 @@ namespace TheMysticSword.AspectAbilities
 
             public void FixedUpdate()
             {
+                updateStatsTime += Time.fixedDeltaTime;
+                if (updateStatsTime >= updateStatsTimeMax)
+                {
+                    canStackNow = true;
+                    updateStatsTime = 0f;
+                }
+
                 noDecayTime -= Time.fixedDeltaTime;
                 if (noDecayTime <= 0 && current > 0f)
                 {
                     current -= (decayTotal / decayTime) * Time.fixedDeltaTime;
-                    decayStatsUpdateTime += Time.fixedDeltaTime;
-                    if (decayStatsUpdateTime >= decayStatsUpdateTimeMax)
-                    {
-                        characterBody.SetFieldValue("statsDirty", true);
-                        decayStatsUpdateTime = 0f;
-                    }
+                    if (updateStatsTime == 0f) characterBody.SetFieldValue("statsDirty", true);
                     if (current < 0f)
                     {
                         characterBody.SetFieldValue("statsDirty", true);
                         current = 0f;
-                        if (NetworkServer.active) characterBody.RemoveBuff(iceCrystalDebuff);
-                    } else
+                        if (NetworkServer.active && characterBody.HasBuff(iceCrystalDebuff)) characterBody.RemoveBuff(iceCrystalDebuff);
+                    }
                 }
             }
         }
