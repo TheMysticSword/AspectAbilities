@@ -302,7 +302,6 @@ namespace TheMysticSword.AspectAbilities
         public class GlacialWardController : MonoBehaviour
         {
             public CharacterBody characterBody;
-            public CharacterMaster master;
             public GameObject visualAura;
             public ParticleSystem[] particleSystems;
             public float radius = 0f;
