@@ -41,20 +41,40 @@ namespace TheMysticSword.AspectAbilities
             // make elites auto-use equipment
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
-                BodyFields bodyFields = self.GetComponent<BodyFields>();
                 if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue)
                 {
-                    bool spawning = false;
-                    EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
-                    foreach (EntityStateMachine stateMachine in stateMachines)
+                    BodyFields bodyFields = self.GetComponent<BodyFields>();
+                    if (bodyFields && bodyFields.aiCanUse)
                     {
-                        if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
+                        bodyFields.aiCanUse = false;
+
+                        bool spawning = false;
+                        EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
+                        foreach (EntityStateMachine stateMachine in stateMachines)
                         {
-                            spawning = true;
-                            break;
+                            if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
+                            {
+                                spawning = true;
+                                break;
+                            }
                         }
+
+                        bool enemyNearby = false;
+                        if (self.master)
+                        {
+                            BaseAI[] aiComponents = self.master.GetFieldValue<BaseAI[]>("aiComponents");
+                            foreach (BaseAI ai in aiComponents)
+                            {
+                                if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= registeredAspectAbilities.Find(aspectAbility => aspectAbility.equipmentIndex == self.equipmentSlot.equipmentIndex).aiMaxDistance)
+                                {
+                                    enemyNearby = true;
+                                }
+                            }
+                        }
+
+                        float randomChance = (1f - self.healthComponent.combinedHealthFraction) * 200f;
+                        if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
                     }
-                    if (!spawning && bodyFields.aiUseDelay <= 0) self.inputBank.activateEquipment.PushState(true);
                 }
                 orig(self);
             };
@@ -227,12 +247,19 @@ namespace TheMysticSword.AspectAbilities
         public class BodyFields : NetworkBehaviour
         {
             public float aiUseDelay = 1f;
+            public float aiUseDelayMax = 1f;
+            public bool aiCanUse = false;
             public float multiplierOnHitProcsOnSelf = 1f;
             public float multiplierOnDeathProcsOnSelf = 1f;
 
             public void FixedUpdate()
             {
                 aiUseDelay -= Time.fixedDeltaTime;
+                if (aiUseDelay <= 0f)
+                {
+                    aiCanUse = true;
+                    aiUseDelay = aiUseDelayMax;
+                }
             }
         }
 
