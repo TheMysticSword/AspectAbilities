@@ -18,7 +18,7 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 ![](https://i.imgur.com/47oI6JS.png)
 
 ---
-###### Celestine - heal all ellies inside the invisibility aura (15s)
+###### Celestine - heal all allies inside the invisibility aura (15s)
 ![](https://i.imgur.com/3EbrAMr.png)
 
 ---
