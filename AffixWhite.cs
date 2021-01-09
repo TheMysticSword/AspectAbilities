@@ -175,8 +175,8 @@ namespace TheMysticSword.AspectAbilities
             Transform modelBaseTransform = iceCrystal.GetComponent<ModelLocator>().modelBaseTransform;
             CharacterModel model = modelBaseTransform.Find("Mesh").gameObject.GetComponent<CharacterModel>();
             model.body = body;
-            body.baseNameToken = "UNIDENTIFIED_KILLER_NAME";
             body.portraitIcon = Resources.Load<Texture>("Textures/BodyIcons/texUnidentifiedKillerIcon");
+            body.baseNameToken = "ASPECTABILITIES_ICECRYSTAL_BODY_NAME";
             body.bodyFlags = iceCrystal.GetComponent<CharacterBody>().bodyFlags | CharacterBody.BodyFlags.ImmuneToExecutes;
             body.baseMaxHealth = 80f;
             body.levelMaxHealth = 24f;
