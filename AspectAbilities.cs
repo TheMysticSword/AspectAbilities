@@ -128,7 +128,7 @@ namespace TheMysticSword.AspectAbilities
                         BodyFields bodyFields = self.body.gameObject.GetComponent<BodyFields>();
                         if (bodyFields)
                         {
-                            damageInfo.procCoefficient *= bodyFields.multiplierOnHitProcsOnSelf;
+                            damageInfo.procCoefficient *= Mathf.Max(bodyFields.multiplierOnHitProcsOnSelf, 0f);
                         }
                     });
                 }
@@ -156,7 +156,7 @@ namespace TheMysticSword.AspectAbilities
                         if (victimBody && attackerBody && attackerBody.master)
                         {
                             BodyFields bodyFields = victimBody.gameObject.GetComponent<BodyFields>();
-                            if (bodyFields && !Util.CheckRoll(100f * bodyFields.multiplierOnDeathProcsOnSelf, attackerBody.master))
+                            if (bodyFields && !Util.CheckRoll(100f * Mathf.Max(bodyFields.multiplierOnDeathProcsOnSelf, 0f), attackerBody.master))
                             {
                                 return false;
                             }
