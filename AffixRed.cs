@@ -4,6 +4,7 @@ using RoR2;
 using RoR2.Projectile;
 using R2API;
 using R2API.Utils;
+using System.Linq;
 
 namespace TheMysticSword.AspectAbilities
 {
@@ -77,10 +78,32 @@ namespace TheMysticSword.AspectAbilities
             public float timer = 0f;
             public float timerMax = 0.25f;
             public CharacterBody characterBody;
+            public BullseyeSearch targetFinder;
+            public HurtBox currentTarget;
 
             public void Awake()
             {
                 characterBody = GetComponent<CharacterBody>();
+                targetFinder = new BullseyeSearch();
+            }
+
+            public void UpdateTarget()
+            {
+                targetFinder.teamMaskFilter = TeamMask.allButNeutral;
+                targetFinder.teamMaskFilter.RemoveTeam(characterBody.teamComponent.teamIndex);
+                targetFinder.sortMode = BullseyeSearch.SortMode.Angle;
+                targetFinder.filterByLoS = true;
+                float num;
+                Ray ray = CameraRigController.ModifyAimRayIfApplicable(characterBody.inputBank.GetAimRay(), gameObject, out num);
+                targetFinder.searchOrigin = ray.origin;
+                targetFinder.searchDirection = ray.direction;
+                targetFinder.maxAngleFilter = 360f;
+                targetFinder.viewer = characterBody;
+
+                targetFinder.RefreshCandidates();
+                targetFinder.FilterOutGameObject(gameObject);
+
+                currentTarget = targetFinder.GetResults().FirstOrDefault();
             }
 
             public void FixedUpdate()
@@ -102,6 +125,25 @@ namespace TheMysticSword.AspectAbilities
                                 {
                                     damage /= AspectAbilities.GetEliteDamageMultiplier(EliteCatalog.GetEquipmentEliteIndex(characterBody.equipmentSlot.equipmentIndex));
                                 }
+                                GameObject target = null;
+                                if (!characterBody.isPlayerControlled)
+                                {
+                                    if (characterBody.master)
+                                    {
+                                        RoR2.CharacterAI.BaseAI.Target aiTarget = AspectAbilities.GetAITarget(characterBody.master);
+                                        if (aiTarget != null)
+                                        {
+                                            target = aiTarget.gameObject;
+                                        }
+                                    }
+                                } else
+                                {
+                                    UpdateTarget();
+                                    if (currentTarget)
+                                    {
+                                        target = currentTarget.healthComponent.body.gameObject;
+                                    }
+                                }
                                 ProjectileManager.instance.FireProjectile(
                                     fireMissile,
                                     characterBody.corePosition,
@@ -111,7 +153,7 @@ namespace TheMysticSword.AspectAbilities
                                     20f,
                                     Util.CheckRoll(characterBody.crit, characterBody.master),
                                     DamageColorIndex.Default,
-                                    null,
+                                    target,
                                     -1f
                                 );
                             }
