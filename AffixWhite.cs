@@ -29,6 +29,9 @@ namespace TheMysticSword.AspectAbilities
         public static float cursePenaltyPerStack = (15f / 100f) * cursePenaltyStackFrequency;
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
 
+        public static float defaultRadius = 30f;
+        public static float defaultGrowTime = 4f;
+        public static float flyTime = 2f;
         public static int maxCrystals = 3;
 
         public static void Init()
@@ -300,9 +303,10 @@ namespace TheMysticSword.AspectAbilities
             public CharacterMaster master;
             public GameObject visualAura;
             public ParticleSystem[] particleSystems;
-            public static float defaultRadius = 16f;
-            public float radius = defaultRadius;
-            public float scaleVelocity = 0f;
+            public float radius = 0f;
+            public float maxRadius = defaultRadius;
+            public float growTime = defaultGrowTime;
+            public float growVelocity = 0f;
             public Vector3 rotation = Vector3.forward;
             public Vector3 rotationTarget = Vector3.forward;
             public Vector3 rotationVelocity = Vector3.zero;
@@ -358,26 +362,23 @@ namespace TheMysticSword.AspectAbilities
             {
                 stopwatch += Time.fixedDeltaTime;
 
+                radius = Mathf.SmoothDamp(radius, maxRadius, ref growVelocity, growTime);
+
                 if (NetworkServer.active)
                 {
-                    curseTimer += Time.fixedDeltaTime;
-                    if (curseTimer >= curseTimerMax)
+                    float radiusSqr = Mathf.Pow(radius, 2);
+                    for (TeamIndex teamIndex = 0; teamIndex < TeamIndex.Count; teamIndex++)
                     {
-                        curseTimer = 0f;
-                        float radiusSqr = Mathf.Pow(radius, 2);
-                        for (TeamIndex teamIndex = 0; teamIndex < TeamIndex.Count; teamIndex++)
+                        if (teamIndex != characterBody.teamComponent.teamIndex)
                         {
-                            if (teamIndex != characterBody.teamComponent.teamIndex)
+                            foreach (TeamComponent teamComponent in TeamComponent.GetTeamMembers(teamIndex))
                             {
-                                foreach (TeamComponent teamComponent in TeamComponent.GetTeamMembers(teamIndex))
+                                if ((teamComponent.transform.position - transform.position).sqrMagnitude <= radiusSqr)
                                 {
-                                    if ((teamComponent.transform.position - transform.position).sqrMagnitude <= radiusSqr)
+                                    CharacterBody body2 = teamComponent.GetComponent<CharacterBody>();
+                                    if (body2)
                                     {
-                                        CharacterBody body2 = teamComponent.GetComponent<CharacterBody>();
-                                        if (body2)
-                                        {
-                                            body2.GetComponent<CurseCount>().Stack(cursePenaltyPerStack, cursePenaltyStackFrequency);
-                                        }
+                                        body2.GetComponent<CurseCount>().Stack(cursePenaltyPerStack, cursePenaltyStackFrequency);
                                     }
                                 }
                             }
@@ -385,7 +386,7 @@ namespace TheMysticSword.AspectAbilities
                     }
                 }
 
-                visualAura.transform.localScale = Vector3.one * Mathf.SmoothDamp(visualAura.transform.localScale.x, radius, ref scaleVelocity, 0.5f);
+                visualAura.transform.localScale = Vector3.one * radius;
                 rotationTime += Time.fixedDeltaTime;
                 if (rotationTime >= rotationTimeMax)
                 {
