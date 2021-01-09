@@ -178,8 +178,8 @@ namespace TheMysticSword.AspectAbilities
             body.baseNameToken = "UNIDENTIFIED_KILLER_NAME";
             body.portraitIcon = Resources.Load<Texture>("Textures/BodyIcons/texUnidentifiedKillerIcon");
             body.bodyFlags = iceCrystal.GetComponent<CharacterBody>().bodyFlags | CharacterBody.BodyFlags.ImmuneToExecutes;
-            body.baseMaxHealth = 200f;
-            body.levelMaxHealth = 60f;
+            body.baseMaxHealth = 80f;
+            body.levelMaxHealth = 24f;
             // replace the pink time crystal material with an ice material
             CharacterModel.RendererInfo[] rendererInfos = model.baseRendererInfos;
             for (int i = 0; i < rendererInfos.Length; i++)
