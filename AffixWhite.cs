@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using RoR2;
 using RoR2.Navigation;
+using RoR2.Projectile;
 using R2API;
 using R2API.Networking;
 using R2API.Networking.Interfaces;
@@ -18,6 +19,8 @@ namespace TheMysticSword.AspectAbilities
     public static class AffixWhite
     {
         public static GameObject iceCrystal;
+        public static GameObject iceCrystalProjectile;
+        public static GameObject iceCrystalProjectileGhost;
         public static SpawnCard iceCrystalSpawnCard;
         public static GameObject iceCrystalExplosionEffect;
         public static Color iceCrystalColor = new Color(209f / 255f, 236f / 255f, 236f / 255f);
@@ -193,81 +196,78 @@ namespace TheMysticSword.AspectAbilities
             iceCrystalExplosionEffect.transform.Find("Particles").Find("LongLifeNoiseTrails").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
             iceCrystalExplosionEffect.transform.Find("Particles").Find("Dash, Bright").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
 
+            iceCrystalProjectile = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/SporeGrenadeProjectile"), "AspectAbilitiesIceCrystalProjectile");
+            Object.Destroy(iceCrystalProjectile.GetComponent<ProjectileDamage>());
+            Object.Destroy(iceCrystalProjectile.GetComponent<ProjectileImpactExplosion>());
+            iceCrystalProjectile.AddComponent<ProjectileImpactEventCaller>();
+            iceCrystalProjectile.AddComponent<GlacialProjectileTweaks>();
+            ProjectileController projectileController = iceCrystalProjectile.GetComponent<ProjectileController>();
+            projectileController.startSound = "Play_mage_m2_iceSpear_shoot";
+
+            iceCrystalProjectileGhost = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/ProjectileGhosts/MageIceBombGhost"), "AspectAbilitiesIceCrystalProjectileGhost", false);
+            //this is probably safe to remove, all it does is print errors in the console saying that the ghost is not instantiated by EffectManager.SpawnEffect
+            Object.Destroy(iceCrystalProjectileGhost.GetComponent<EffectComponent>());
+            Vector3 ghostLocalScale = iceCrystalProjectileGhost.transform.localScale;
+            ghostLocalScale.z *= 0.3f;
+            ghostLocalScale *= 1.5f;
+            iceCrystalProjectileGhost.transform.localScale = ghostLocalScale;
+
+            projectileController.ghostPrefab = iceCrystalProjectileGhost;
+
             AssetManager.RegisterBody(iceCrystal);
             AssetManager.RegisterEffect(iceCrystalExplosionEffect);
+            AssetManager.RegisterProjectile(iceCrystalProjectile);
 
             AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixWhite, 45f,
                 (self) =>
                 {
                     // spawn a health-reducing crystal ward
-                    float maxDistance = 1000f;
                     Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
 
+                    bool fire = false;
+                    Vector3 finalPosition = Vector3.zero;
+                    RaycastHit raycastHit;
+                    if (Physics.Raycast(aimRay, out raycastHit, 1000f, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+                    {
+                        finalPosition = raycastHit.point;
+                        fire = true;
+                    }
                     if (!self.characterBody.isPlayerControlled)
                     {
-                        // ai tweaks:
-                        // don't cast this from across the map
-                        maxDistance = 60f;
-                        // always spawn ward near the target
-                        BullseyeSearch bullseyeSearch = new BullseyeSearch();
-                        bullseyeSearch.searchOrigin = aimRay.origin;
-                        bullseyeSearch.searchDirection = aimRay.direction;
-                        bullseyeSearch.maxDistanceFilter = maxDistance;
-                        bullseyeSearch.teamMaskFilter = TeamMask.allButNeutral;
-                        bullseyeSearch.filterByLoS = false;
-                        bullseyeSearch.teamMaskFilter.RemoveTeam(TeamComponent.GetObjectTeam(self.gameObject));
-                        bullseyeSearch.sortMode = BullseyeSearch.SortMode.Angle;
-                        bullseyeSearch.RefreshCandidates();
-                        List<HurtBox> hurtBoxes = bullseyeSearch.GetResults().ToList();
-                        hurtBoxes.RemoveAll(x => x.healthComponent.body.isFlying);
-                        // choose the healthiest target and prioritize ground targets
-                        hurtBoxes.OrderBy(hb => hb.healthComponent.fullCombinedHealth * (hb.healthComponent.body.isFlying ? 0.25f : 1f));
-                        HurtBox hurtBox = hurtBoxes.LastOrDefault();
-                        if (hurtBox)
+                        if (self.characterBody.master)
                         {
-                            // don't cast this if the target is too far away
-                            if (Vector3.Distance(hurtBox.transform.position, self.characterBody.corePosition) > maxDistance) return false;
-
-                            // spawn somewhere in front of the target so that they notice it
-                            float angleVariation = 35f;
-                            float angle = (Util.QuaternionSafeLookRotation(hurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
-                            Vector3 offset = (GlacialWardController.defaultRadius / 2f + hurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
-                            Vector3 finalPosition = hurtBox.transform.position + offset;
-
-                            // choose the closest ground node to the chosen position to prevent spawning in walls and in the air
-                            NodeGraph nodes = SceneInfo.instance.groundNodes;
-                            NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(finalPosition, hurtBox.healthComponent.body.hullClassification);
-                            nodes.GetNodePosition(nodeIndex, out finalPosition);
-
-                            // reposition the aim ray and change distance in such a way that it's aimed at the ground
-                            aimRay.origin = finalPosition + Vector3.up * 0.5f;
-                            aimRay.direction = Vector3.down;
-                        }
-                        else
-                        {
-                            // if no targets are found, don't cast
-                            return false;
-                        }
-                    }
-
-                    RaycastHit raycastHit;
-                    if (Physics.Raycast(aimRay, out raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
-                    {
-                        GameObject crystal = DirectorCore.instance.TrySpawnObject(new DirectorSpawnRequest(iceCrystalSpawnCard, new DirectorPlacementRule { placementMode = DirectorPlacementRule.PlacementMode.Direct, position = raycastHit.point }, RoR2Application.rng));
-                        if (crystal)
-                        {
-                            EffectManager.SpawnEffect(Resources.Load<GameObject>("Prefabs/Effects/ImpactEffects/IceRingExplosion"), new EffectData { origin = crystal.transform.position, scale = 35f, rotation = Quaternion.Euler(raycastHit.normal) }, true);
-                            Util.PlaySound("Play_mage_m2_iceSpear_impact", crystal);
-                            crystal.transform.up = raycastHit.normal;
-                            crystal.GetComponent<TeamComponent>().teamIndex = self.characterBody.teamComponent.teamIndex;
-                            crystal.GetComponent<GlacialWardController>().master = self.characterBody.master;
-                            AspectAbilities.BodyFields bodyFields = crystal.GetComponent<AspectAbilities.BodyFields>();
-                            if (bodyFields)
+                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilities.GetAITarget(self.characterBody.master);
+                            if (target != null && target.bestHurtBox)
                             {
-                                bodyFields.multiplierOnHitProcsOnSelf -= 1f;
-                                bodyFields.multiplierOnDeathProcsOnSelf -= 1f;
+                                finalPosition = target.bestHurtBox.transform.position;
+                                fire = true;
                             }
                         }
+                    }
+                    if (fire)
+                    {
+                        Vector3 distance = finalPosition - aimRay.origin;
+                        Vector2 distance2 = new Vector2(distance.x, distance.z);
+                        float magnitude = distance2.magnitude;
+                        Vector2 vector2 = distance2 / magnitude;
+                        float y = Trajectory.CalculateInitialYSpeed(flyTime, distance.y);
+                        float num = magnitude / flyTime;
+                        Vector3 direction = new Vector3(vector2.x * num, y, vector2.y * num);
+                        magnitude = direction.magnitude;
+
+                        Quaternion rotation = Util.QuaternionSafeLookRotation(direction);
+                        ProjectileManager.instance.FireProjectile(
+                            iceCrystalProjectile,
+                            aimRay.origin,
+                            rotation,
+                            self.characterBody.gameObject,
+                            0f,
+                            0f,
+                            false,
+                            DamageColorIndex.Default,
+                            null,
+                            magnitude
+                        );
                         return true;
                     }
                     return false;
@@ -541,16 +541,50 @@ namespace TheMysticSword.AspectAbilities
                         current = 0f;
                         if (NetworkServer.active) characterBody.RemoveBuff(iceCrystalDebuff);
                     } else
+                }
+            }
+        }
+
+        private class GlacialProjectileTweaks : MonoBehaviour
+        {
+            Rigidbody rigidbody;
+            TeamIndex teamIndex;
+
+            private void Start()
+            {
+                ProjectileController controller = GetComponent<ProjectileController>();
+                ProjectileImpactEventCaller impactEventCaller = GetComponent<ProjectileImpactEventCaller>();
+                CharacterBody ownerBody = controller.owner.GetComponent<CharacterBody>();
+                rigidbody = GetComponent<Rigidbody>();
+                teamIndex = ownerBody.teamComponent.teamIndex;
+
+                impactEventCaller.impactEvent.AddListener((ProjectileImpactInfo impactInfo) =>
+                {
+                    // don't collide with entities, only with the world
+                    if (!impactInfo.collider.GetComponent<HurtBox>())
                     {
-                        if (NetworkServer.active)
+                        GameObject crystal = DirectorCore.instance.TrySpawnObject(new DirectorSpawnRequest(iceCrystalSpawnCard, new DirectorPlacementRule { placementMode = DirectorPlacementRule.PlacementMode.Direct, position = impactInfo.estimatedPointOfImpact }, RoR2Application.rng));
+                        if (crystal)
                         {
-                            while (((current / decayTotal) * decayTime) < (characterBody.GetBuffCount(iceCrystalDebuff) - 1))
+                            EffectManager.SpawnEffect(Resources.Load<GameObject>("Prefabs/Effects/ImpactEffects/IceRingExplosion"), new EffectData { origin = crystal.transform.position, scale = 35f, rotation = Quaternion.Euler(impactInfo.estimatedImpactNormal) }, true);
+                            Util.PlaySound("Play_mage_m2_iceSpear_impact", crystal);
+                            crystal.transform.up = impactInfo.estimatedImpactNormal;
+                            crystal.GetComponent<TeamComponent>().teamIndex = teamIndex;
+                            AspectAbilities.BodyFields bodyFields = crystal.GetComponent<AspectAbilities.BodyFields>();
+                            if (bodyFields)
                             {
-                                characterBody.RemoveBuff(iceCrystalDebuff);
+                                bodyFields.multiplierOnHitProcsOnSelf -= 1f;
+                                bodyFields.multiplierOnDeathProcsOnSelf -= 1f;
                             }
                         }
+                        Object.Destroy(gameObject);
                     }
-                }
+                });
+            }
+
+            private void FixedUpdate()
+            {
+                rigidbody.rotation = Util.QuaternionSafeLookRotation(rigidbody.velocity);
             }
         }
     }
