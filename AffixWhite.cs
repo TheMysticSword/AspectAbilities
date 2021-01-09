@@ -340,7 +340,7 @@ namespace TheMysticSword.AspectAbilities
                 if (instances.Count > 0)
                 {
                     instances.RemoveAll(inst => inst.teamComponent.teamIndex != characterBody.teamComponent.teamIndex);
-                    if (instances.Count > 5)
+                    while (instances.Count > maxCrystals)
                     {
                         instances.OrderBy(inst => inst.gameObject.GetComponent<GlacialWardController>().stopwatch);
                         CharacterBody oldest = instances.First();
@@ -348,6 +348,7 @@ namespace TheMysticSword.AspectAbilities
                         {
                             oldest.gameObject.GetComponent<GlacialWardController>().effectOnDeath = false;
                             oldest.healthComponent.Suicide();
+                            instances.Remove(oldest);
                         }
                     }
                 }
