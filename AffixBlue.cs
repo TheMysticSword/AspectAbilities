@@ -40,26 +40,22 @@ namespace TheMysticSword.AspectAbilities
                     if (!self.characterBody.isPlayerControlled)
                     {
                         // ai tweaks:
-                        // always teleport near the target, ignore the aim ray
-                        BullseyeSearch bullseyeSearch = new BullseyeSearch();
-                        bullseyeSearch.searchOrigin = aimRay.origin;
-                        bullseyeSearch.searchDirection = aimRay.direction;
-                        bullseyeSearch.maxDistanceFilter = maxDistance;
-                        bullseyeSearch.teamMaskFilter = TeamMask.allButNeutral;
-                        bullseyeSearch.filterByLoS = false;
-                        bullseyeSearch.teamMaskFilter.RemoveTeam(TeamComponent.GetObjectTeam(self.gameObject));
-                        bullseyeSearch.sortMode = BullseyeSearch.SortMode.Angle;
-                        bullseyeSearch.RefreshCandidates();
-                        // choose the closest target and prioritize targets of the same type (ground or flying)
-                        HurtBox hurtBox = bullseyeSearch.GetResults().OrderBy(hb => Vector3.Distance(hb.transform.position, self.characterBody.transform.position) * (self.characterBody.isFlying == hb.healthComponent.body.isFlying ? 1f : 2f)).FirstOrDefault();
                         // teleport in front of the target with slight angle variation
                         // NEVER teleport behind a player - you won't notice an enemy that suddenly appears behind you
-                        if (hurtBox)
+                        if (self.characterBody.master)
                         {
-                            float angleVariation = 35f;
-                            float angle = (Util.QuaternionSafeLookRotation(hurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
-                            Vector3 offset = (25f + hurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
-                            endPosition = hurtBox.transform.position + offset;
+                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilities.GetAITarget(self.characterBody.master);
+                            if (target != null && target.bestHurtBox)
+                            {
+                                float angle = Random.value * 360f;
+                                if (target.bestHurtBox.healthComponent.body.inputBank)
+                                {
+                                    float angleVariation = 35f;
+                                    angle = (Util.QuaternionSafeLookRotation(target.bestHurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
+                                }
+                                Vector3 offset = (25f + target.bestHurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
+                                endPosition = target.bestHurtBox.transform.position + offset;
+                            }
                         }
                     }
 
