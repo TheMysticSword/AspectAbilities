@@ -134,7 +134,6 @@ namespace TheMysticSword.AspectAbilities
             internal static GameObject targetPrefab;
             private GameObject target;
             private bool targetAcquired = false;
-            private float spread = 0.5f;
 
             private void Awake()
             {
@@ -158,7 +157,7 @@ namespace TheMysticSword.AspectAbilities
                     {
                         if (targetComponent.target && !targetAcquired)
                         {
-                            target.transform.position = targetComponent.target.position + Random.insideUnitSphere * spread;
+                            target.transform.position = targetComponent.target.position;
                             targetComponent.target = target.transform;
                             targetAcquired = true;
                         }
