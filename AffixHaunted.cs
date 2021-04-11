@@ -38,7 +38,7 @@ namespace TheMysticSword.AspectAbilities
             NetworkingAPI.RegisterMessageType<HealPulseController.SyncFire>();
             NetworkingAPI.RegisterMessageType<HealPulseController.SyncFireFailed>();
 
-            AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixHaunted, 15f,
+            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixHaunted, 15f,
                 (self) =>
                 {
                 // cast an AoE heal for allies
@@ -66,7 +66,7 @@ namespace TheMysticSword.AspectAbilities
                         ReadOnlyCollection<TeamComponent> teamMembers = TeamComponent.GetTeamMembers(self.characterBody.teamComponent.teamIndex);
                         foreach (var teamMember in teamMembers)
                         {
-                            if (teamMember.body.equipmentSlot && teamMember.body.equipmentSlot.equipmentIndex == EquipmentIndex.AffixHaunted)
+                            if (teamMember.body.equipmentSlot && teamMember.body.equipmentSlot.equipmentIndex == RoR2Content.Equipment.AffixHaunted.equipmentIndex)
                             {
                                 healedTargets.Add(teamMember.body.healthComponent);
                             }
@@ -190,6 +190,7 @@ namespace TheMysticSword.AspectAbilities
             private bool mustSyncFire = false;
             private float syncFireDelay = 0f;
             private float syncFireDelayMax = 2f / 60f;
+            public static System.Reflection.ConstructorInfo healPulseConstructor = typeof(EntityStates.TeleporterHealNovaController.TeleporterHealNovaPulse).GetNestedTypeCached("HealPulse").GetConstructor(new System.Type[] { typeof(Vector3), typeof(float), typeof(float), typeof(float), typeof(TeamIndex) });
 
             public void Fire(Vector3 origin, float radius, float healFraction, float duration, TeamIndex teamIndex)
             {
@@ -200,7 +201,7 @@ namespace TheMysticSword.AspectAbilities
                 displayedEffect.SetActive(true);
                 if (NetworkServer.active)
                 {
-                    healPulse = typeof(EntityStates.TeleporterHealNovaController.TeleporterHealNovaPulse).GetNestedTypeCached("HealPulse").GetConstructor(new System.Type[] { typeof(Vector3), typeof(float), typeof(float), typeof(float), typeof(TeamIndex) }).Invoke(new object[] { origin, radius, healFraction, duration, teamIndex });
+                    healPulse = healPulseConstructor.Invoke(new object[] { origin, radius, healFraction, duration, teamIndex });
                     mustSyncFire = true;
                 }
                 else

@@ -22,7 +22,14 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 ![](https://i.imgur.com/3EbrAMr.png)
 
 ---
+###### Perfected - temporarily encase yourself in Lunar Shell, preventing enemy attacks from dealing more than 10% of your maximum health as damage in a single hit (90s)
+![](https://i.imgur.com/vh9Jp8K.png)
+
+---
 ### Changelog:
+#### 1.4.0:
+* Now works on the Anniversary Update version of the game
+* Added Perfected aspect ability
 #### 1.3.0:
 * Elite enemies no longer use aspects immediately after spawning
 * Blazing:

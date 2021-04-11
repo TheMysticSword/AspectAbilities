@@ -21,7 +21,7 @@ namespace TheMysticSword.AspectAbilities
                 self.gameObject.AddComponent<OverloadingBlinkController>();
             };
 
-            AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixBlue, 15f,
+            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixBlue, 15f,
                 (self) =>
                 {
                     // teleport to the cursor
@@ -44,7 +44,7 @@ namespace TheMysticSword.AspectAbilities
                         // NEVER teleport behind a player - you won't notice an enemy that suddenly appears behind you
                         if (self.characterBody.master)
                         {
-                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilities.GetAITarget(self.characterBody.master);
+                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
                             if (target != null && target.bestHurtBox)
                             {
                                 float angle = Random.value * 360f;

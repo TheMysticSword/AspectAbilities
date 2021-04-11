@@ -20,8 +20,8 @@ namespace TheMysticSword.AspectAbilities
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();
             malachiteUrchinOrbitalMaster.GetComponent<CharacterMaster>().bodyPrefab = malachiteUrchinOrbitalBody;
 
-            AssetManager.RegisterBody(malachiteUrchinOrbitalBody);
-            AssetManager.RegisterMaster(malachiteUrchinOrbitalMaster);
+            AspectAbilitiesContent.Resources.bodyPrefabs.Add(malachiteUrchinOrbitalBody);
+            AspectAbilitiesContent.Resources.masterPrefabs.Add(malachiteUrchinOrbitalMaster);
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
             {
@@ -29,7 +29,7 @@ namespace TheMysticSword.AspectAbilities
                 self.gameObject.AddComponent<MalachiteOrbitalController>();
             };
 
-            AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixPoison, 90f,
+            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixPoison, 90f,
                 (self) =>
                 {
                     MalachiteOrbitalController orbitalController = self.characterBody.GetComponent<MalachiteOrbitalController>();
@@ -80,15 +80,17 @@ namespace TheMysticSword.AspectAbilities
 
             public struct UrchinHolder
             {
-                public UrchinHolder(int index, CharacterBody body)
+                public UrchinHolder(int index)
                 {
                     this.index = index;
-                    this.body = body;
+                    this.body = null;
                     this.spawnTime = Run.instance.time;
                     this.dampVelocity = Vector3.zero;
+                    this.spawnedOnce = false;
                 }
                 public int index;
                 public CharacterBody body;
+                public bool spawnedOnce;
                 public float spawnTime;
                 public bool alive
                 {
@@ -106,7 +108,7 @@ namespace TheMysticSword.AspectAbilities
                 {
                     if (urchin.index >= total && urchin.alive) urchin.body.healthComponent.Suicide();
                 }
-                urchins.RemoveAll(x => !x.alive);
+                urchins.RemoveAll(x => !x.alive && x.spawnedOnce);
             }
 
             private Vector3 FindSuitableAngle(int index)
@@ -133,7 +135,7 @@ namespace TheMysticSword.AspectAbilities
                     List<bool> indexStatus = Enumerable.Repeat(false, total).ToList();
                     foreach (UrchinHolder urchin in urchins)
                     {
-                        if (urchin.alive)
+                        if (urchin.alive || !urchin.spawnedOnce)
                         {
                             indexStatus[urchin.index] = true;
                         }
@@ -149,7 +151,7 @@ namespace TheMysticSword.AspectAbilities
                     if (freeIndex >= total)
                     {
                         UrchinHolder oldest = urchins.Aggregate((current, next) => next.spawnTime < current.spawnTime ? next : current);
-                        if (oldest.body.healthComponent)
+                        if (oldest.body && oldest.body.healthComponent)
                         {
                             oldest.body.healthComponent.Suicide();
                             RefreshSlots();
@@ -159,38 +161,39 @@ namespace TheMysticSword.AspectAbilities
                     // spawn the urchin facing outward of the circle
                     if (NetworkServer.active)
                     {
-                        CharacterMaster urchinMaster = new MasterSummon
+                        new MasterSummon
                         {
                             masterPrefab = malachiteUrchinOrbitalMaster,
                             position = FindSuitablePosition(freeIndex),
                             rotation = Quaternion.LookRotation(FindSuitableAngle(freeIndex)),
                             summonerBodyObject = characterBody.gameObject,
-                            ignoreTeamMemberLimit = true
-                        }.Perform();
-                        if (urchinMaster && NetworkServer.active)
-                        {
-                            urchins.Add(new UrchinHolder(freeIndex, urchinMaster.GetBody()));
-                            AspectAbilities.BodyFields bodyFields = urchinMaster.GetBody().gameObject.GetComponent<AspectAbilities.BodyFields>();
-                            if (bodyFields)
+                            ignoreTeamMemberLimit = true,
+                            preSpawnSetupCallback = (urchinMaster) =>
                             {
-                                bodyFields.multiplierOnHitProcsOnSelf -= 1f;
-                                bodyFields.multiplierOnDeathProcsOnSelf -= 1f;
-                            }
-                            // copy the master's items
-                            Inventory inventory = urchinMaster.GetBody().inventory;
-                            inventory.ResetItem(ItemIndex.HealthDecay);
-                            inventory.CopyItemsFrom(characterBody.inventory);
-                            for (int itemIndex = 0; itemIndex < ItemCatalog.itemCount; itemIndex++)
-                            {
-                                if (ItemCatalog.GetItemDef((ItemIndex)itemIndex).ContainsTag(ItemTag.AIBlacklist))
+                                if (NetworkServer.active)
                                 {
-                                    inventory.ResetItem((ItemIndex)itemIndex);
+                                    urchins.Add(new UrchinHolder(freeIndex));
+                                    int freeIndexCached = freeIndex;
+                                    // can't do urchinMaster.GetBody() because the body doesn't exist yet
+                                    urchinMaster.onBodyStart += (urchinBody) =>
+                                    {
+                                        UrchinHolderOnSpawn(freeIndexCached, urchinBody);
+                                        AspectAbilitiesPlugin.AspectAbilitiesBodyFields bodyFields = urchinBody.GetComponent<AspectAbilitiesPlugin.AspectAbilitiesBodyFields>();
+                                        if (bodyFields)
+                                        {
+                                            bodyFields.multiplierOnHitProcsOnSelf -= 1f;
+                                            bodyFields.multiplierOnDeathProcsOnSelf -= 1f;
+                                        }
+                                    };
+                                    Inventory inventory = urchinMaster.inventory;
+                                    inventory.ResetItem(RoR2Content.Items.HealthDecay);
+                                    inventory.CopyItemsFrom(characterBody.inventory);
+                                    inventory.ResetItem(RoR2Content.Items.BoostHp); // don't boost stats from elite owners
+                                    inventory.ResetItem(RoR2Content.Items.BoostDamage);
+                                    inventory.GiveItem(RoR2Content.Items.HealthDecay, 45);
                                 }
                             }
-                            inventory.ResetItem(ItemIndex.BoostHp);
-                            inventory.ResetItem(ItemIndex.BoostDamage);
-                            inventory.GiveItem(ItemIndex.HealthDecay, 45);
-                        }
+                        }.Perform();
                     }
                 }
 
@@ -213,6 +216,18 @@ namespace TheMysticSword.AspectAbilities
                     {
                         Destroy(this);
                     }
+                }
+            }
+
+            public void UrchinHolderOnSpawn(int index, CharacterBody body)
+            {
+                int listIndex = urchins.FindIndex(x => x.index == index);
+                if (listIndex != -1)
+                {
+                    UrchinHolder newUrchin = new UrchinHolder(index);
+                    newUrchin.body = body;
+                    newUrchin.spawnedOnce = true;
+                    urchins[listIndex] = newUrchin;
                 }
             }
 

@@ -24,7 +24,7 @@ namespace TheMysticSword.AspectAbilities
         public static SpawnCard iceCrystalSpawnCard;
         public static GameObject iceCrystalExplosionEffect;
         public static Color iceCrystalColor = new Color(209f / 255f, 236f / 255f, 236f / 255f);
-        public static BuffIndex iceCrystalDebuff;
+        public static BuffDef iceCrystalDebuff;
         public static float cursePenaltyStackFrequency = 0.2f;
         public static float cursePenaltyPerStack = (15f / 100f) * cursePenaltyStackFrequency;
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
@@ -36,15 +36,15 @@ namespace TheMysticSword.AspectAbilities
 
         public static void Init()
         {
-            iceCrystalDebuff = BuffAPI.Add(new CustomBuff(new BuffDef
-            {
-                buffColor = iceCrystalColor,
-                canStack = false,
-                iconPath = "Textures/BuffIcons/texBuffPulverizeIcon",
-                isDebuff = true,
-                name = "AspectAbilitiesIceCrystalDebuff"
-            }));
+            iceCrystalDebuff = ScriptableObject.CreateInstance<BuffDef>();
+            iceCrystalDebuff.name = "AspectAbilitiesIceCrystalDebuff";
+            iceCrystalDebuff.buffColor = iceCrystalColor;
+            iceCrystalDebuff.canStack = false;
+            iceCrystalDebuff.iconSprite = Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
+            iceCrystalDebuff.isDebuff = true;
+            AspectAbilitiesContent.Buffs.IceCrystalDebuff = iceCrystalDebuff;
 
+            AspectAbilitiesContent.Resources.entityStateTypes.Add(typeof(GlacialWardDeath));
             NetworkingAPI.RegisterMessageType<CurseCount.SyncStack>();
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
@@ -57,12 +57,24 @@ namespace TheMysticSword.AspectAbilities
             IL.RoR2.CharacterBody.RecalculateStats += (il) =>
             {
                 ILCursor c = new ILCursor(il);
+                int maxHealthPrevPos = 48;
+                int maxShieldPrevPos = 49;
+                int trueMaxHealthPos = 50;
+                int trueMaxShieldPos = 52;
+                int permaCurseBuffCountPos = 78;
+                int maxHealthDeltaPos = 80;
+                int maxShieldDeltaPos = 81;
                 // increase curse penalty
                 c.GotoNext(
                     MoveType.After,
                     x => x.MatchLdarg(0),
                     x => x.MatchLdcR4(1),
-                    x => x.MatchCallvirt<CharacterBody>("set_cursePenalty")
+                    x => x.MatchCallOrCallvirt<CharacterBody>("set_cursePenalty")
+                );
+                c.GotoNext(
+                    MoveType.After,
+                    x => x.MatchCallOrCallvirt<CharacterBody>("GetBuffCount"),
+                    x => x.MatchStloc(permaCurseBuffCountPos)
                 );
                 c.Emit(OpCodes.Ldarg_0);
                 c.EmitDelegate<System.Action<CharacterBody>>((characterBody) =>
@@ -78,14 +90,14 @@ namespace TheMysticSword.AspectAbilities
                 c.GotoNext(
                     MoveType.After,
                     x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<CharacterBody>("get_maxHealth"),
-                    x => x.MatchLdloc(39),
+                    x => x.MatchCallOrCallvirt<CharacterBody>("get_maxHealth"),
+                    x => x.MatchLdloc(maxHealthPrevPos),
                     x => x.MatchSub(),
-                    x => x.MatchStloc(70)
+                    x => x.MatchStloc(maxHealthDeltaPos)
                 );
                 c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, 41);
-                c.Emit(OpCodes.Ldloc, 70);
+                c.Emit(OpCodes.Ldloc, trueMaxHealthPos);
+                c.Emit(OpCodes.Ldloc, maxHealthDeltaPos);
                 c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
                 {
                     CurseCount curseCount = characterBody.GetComponent<CurseCount>();
@@ -106,19 +118,19 @@ namespace TheMysticSword.AspectAbilities
                     }
                     return maxHealthDelta;
                 });
-                c.Emit(OpCodes.Stloc, 70);
+                c.Emit(OpCodes.Stloc, maxHealthDeltaPos);
                 // do the same with shields
                 c.GotoNext(
                     MoveType.After,
                     x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<CharacterBody>("get_maxShield"),
-                    x => x.MatchLdloc(40),
+                    x => x.MatchCallOrCallvirt<CharacterBody>("get_maxShield"),
+                    x => x.MatchLdloc(maxShieldPrevPos),
                     x => x.MatchSub(),
-                    x => x.MatchStloc(71)
+                    x => x.MatchStloc(maxShieldDeltaPos)
                 );
                 c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, 43);
-                c.Emit(OpCodes.Ldloc, 71);
+                c.Emit(OpCodes.Ldloc, trueMaxShieldPos);
+                c.Emit(OpCodes.Ldloc, maxShieldDeltaPos);
                 c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
                 {
                     CurseCount curseCount = characterBody.GetComponent<CurseCount>();
@@ -139,7 +151,7 @@ namespace TheMysticSword.AspectAbilities
                     }
                     return maxHealthDelta;
                 });
-                c.Emit(OpCodes.Stloc, 71);
+                c.Emit(OpCodes.Stloc, maxShieldDeltaPos);
             };
             On.RoR2.CharacterBody.RecalculateStats += (orig, self) =>
             {
@@ -155,7 +167,7 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.CharacterBody.OnBuffFinalStackLost += (orig, self, buffDef) =>
             {
                 orig(self, buffDef);
-                if (buffDef.buffIndex == iceCrystalDebuff)
+                if (buffDef == iceCrystalDebuff)
                 {
                     CurseCount curseCount = self.GetComponent<CurseCount>();
                     if (curseCount.current > 0f)
@@ -168,6 +180,7 @@ namespace TheMysticSword.AspectAbilities
 
             // create glacial ward prefab
             iceCrystal = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/TimeCrystalBody"), "AspectAbilitiesIceCrystalBody");
+
             MeshCollider meshCollider = iceCrystal.AddComponent<MeshCollider>();
             meshCollider.gameObject.layer = LayerIndex.defaultLayer.intVal;
             meshCollider.sharedMesh = iceCrystal.transform.Find("ModelBase").Find("Mesh").gameObject.GetComponent<MeshFilter>().sharedMesh;
@@ -177,7 +190,7 @@ namespace TheMysticSword.AspectAbilities
             model.body = body;
             body.baseNameToken = "ASPECTABILITIES_ICECRYSTAL_BODY_NAME";
             body.portraitIcon = Resources.Load<Texture>("Textures/MiscIcons/texMysteryIcon");
-            body.bodyFlags = iceCrystal.GetComponent<CharacterBody>().bodyFlags | CharacterBody.BodyFlags.ImmuneToExecutes;
+            body.bodyFlags = iceCrystal.GetComponent<CharacterBody>().bodyFlags | CharacterBody.BodyFlags.ImmuneToExecutes | CharacterBody.BodyFlags.HasBackstabImmunity;
             body.baseMaxHealth = 80f;
             body.levelMaxHealth = 24f;
             // replace the pink time crystal material with an ice material
@@ -196,8 +209,11 @@ namespace TheMysticSword.AspectAbilities
             Object.Destroy(modelBaseTransform.Find("Swirls").gameObject);
             Object.Destroy(modelBaseTransform.Find("WarningRadius").gameObject);
             // we will attach the ice relic snowstorm aura effect to this
-            GameObject icicleAura = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/NetworkedObjects/IcicleAura"), "AspectAbilitiesIceCrystalIcicleAura");
+            GameObject icicleAura = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/NetworkedObjects/IcicleAura"), "AspectAbilitiesIceCrystalIcicleAura", false);
             Object.Destroy(icicleAura.GetComponent<IcicleAuraController>());
+            Object.Destroy(icicleAura.GetComponent<BuffWard>());
+            Object.Destroy(icicleAura.GetComponent<TeamFilter>());
+            Object.Destroy(icicleAura.GetComponent<NetworkIdentity>());
             icicleAura.name = "VisualAura";
             icicleAura.transform.SetParent(iceCrystal.transform);
             icicleAura.transform.localPosition = Vector3.zero;
@@ -239,11 +255,11 @@ namespace TheMysticSword.AspectAbilities
 
             projectileController.ghostPrefab = iceCrystalProjectileGhost;
 
-            AssetManager.RegisterBody(iceCrystal);
-            AssetManager.RegisterEffect(iceCrystalExplosionEffect);
-            AssetManager.RegisterProjectile(iceCrystalProjectile);
+            AspectAbilitiesContent.Resources.bodyPrefabs.Add(iceCrystal);
+            AspectAbilitiesContent.Resources.effectPrefabs.Add(iceCrystalExplosionEffect);
+            AspectAbilitiesContent.Resources.projectilePrefabs.Add(iceCrystalProjectile);
 
-            AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixWhite, 45f,
+            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixWhite, 45f,
                 (self) =>
                 {
                     // spawn a health-reducing crystal ward
@@ -261,7 +277,7 @@ namespace TheMysticSword.AspectAbilities
                     {
                         if (self.characterBody.master)
                         {
-                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilities.GetAITarget(self.characterBody.master);
+                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
                             if (target != null && target.bestHurtBox)
                             {
                                 finalPosition = target.bestHurtBox.transform.position;
@@ -595,7 +611,7 @@ namespace TheMysticSword.AspectAbilities
                             Util.PlaySound("Play_mage_m2_iceSpear_impact", crystal);
                             crystal.transform.up = impactInfo.estimatedImpactNormal;
                             crystal.GetComponent<TeamComponent>().teamIndex = teamIndex;
-                            AspectAbilities.BodyFields bodyFields = crystal.GetComponent<AspectAbilities.BodyFields>();
+                            AspectAbilitiesPlugin.AspectAbilitiesBodyFields bodyFields = crystal.GetComponent<AspectAbilitiesPlugin.AspectAbilitiesBodyFields>();
                             if (bodyFields)
                             {
                                 bodyFields.multiplierOnHitProcsOnSelf -= 1f;

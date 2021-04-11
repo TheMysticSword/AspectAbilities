@@ -56,7 +56,7 @@ namespace TheMysticSword.AspectAbilities
 
             BlazingMissileControllerTweaks.targetPrefab = targetPrefab;
 
-            AssetManager.RegisterProjectile(fireMissile);
+            AspectAbilitiesContent.Resources.projectilePrefabs.Add(fireMissile);
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
             {
@@ -64,7 +64,7 @@ namespace TheMysticSword.AspectAbilities
                 self.gameObject.AddComponent<BlazingMissileLauncher>();
             };
 
-            AspectAbilities.RegisterAspectAbility(EquipmentIndex.AffixRed, 15f,
+            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixRed, 15f,
                 (self) =>
                 {
                     self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += totalMissilesPerUse;
@@ -121,16 +121,16 @@ namespace TheMysticSword.AspectAbilities
                             {
                                 float damage = characterBody.damage * (totalMissileDamage / (float)totalMissilesPerUse);
                                 // make the damage equal for elite enemies and players
-                                if (!characterBody.isPlayerControlled && characterBody.equipmentSlot.equipmentIndex == EquipmentIndex.AffixRed)
+                                if (!characterBody.isPlayerControlled && characterBody.equipmentSlot.equipmentIndex == RoR2Content.Equipment.AffixRed.equipmentIndex)
                                 {
-                                    damage /= AspectAbilities.GetEliteDamageMultiplier(EliteCatalog.GetEquipmentEliteIndex(characterBody.equipmentSlot.equipmentIndex));
+                                    damage /= characterBody.inventory.GetItemCount(RoR2Content.Items.BoostDamage);
                                 }
                                 GameObject target = null;
                                 if (!characterBody.isPlayerControlled)
                                 {
                                     if (characterBody.master)
                                     {
-                                        RoR2.CharacterAI.BaseAI.Target aiTarget = AspectAbilities.GetAITarget(characterBody.master);
+                                        RoR2.CharacterAI.BaseAI.Target aiTarget = AspectAbilitiesPlugin.GetAITarget(characterBody.master);
                                         if (aiTarget != null)
                                         {
                                             target = aiTarget.gameObject;

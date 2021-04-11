@@ -12,38 +12,45 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using HG;
+using System.Security;
+using System.Security.Permissions;
+
+[module: UnverifiableCode]
+[assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 
 namespace TheMysticSword.AspectAbilities
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInDependency(JarlykMods.Durability.DurabilityPlugin.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-    [R2APISubmoduleDependency(nameof(BuffAPI), nameof(EntityAPI), nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
-    public class AspectAbilities : BaseUnityPlugin
+    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
+    public class AspectAbilitiesPlugin : BaseUnityPlugin
     {
         const string PluginGUID = "com.TheMysticSword.AspectAbilities";
         const string PluginName = "AspectAbilities";
-        const string PluginVersion = "1.3.0";
+        const string PluginVersion = "1.4.0";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
         public void Awake()
         {
-            AssetManager.Init();
+            GenericGameEvents.Init();
             LanguageManager.Init();
+            StateSeralizerFix.Init();
 
             AffixRed.Init();
             AffixBlue.Init();
             AffixWhite.Init();
             AffixPoison.Init();
             AffixHaunted.Init();
+            AffixLunar.Init();
 
             // make elites auto-use equipment
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
-                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue)
+                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue)
                 {
-                    BodyFields bodyFields = self.GetComponent<BodyFields>();
+                    AspectAbilitiesBodyFields bodyFields = self.GetComponent<AspectAbilitiesBodyFields>();
                     if (bodyFields && bodyFields.aiCanUse)
                     {
                         bodyFields.aiCanUse = false;
@@ -65,7 +72,7 @@ namespace TheMysticSword.AspectAbilities
                             BaseAI[] aiComponents = self.master.GetFieldValue<BaseAI[]>("aiComponents");
                             foreach (BaseAI ai in aiComponents)
                             {
-                                if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= registeredAspectAbilities.Find(aspectAbility => aspectAbility.equipmentIndex == self.equipmentSlot.equipmentIndex).aiMaxDistance)
+                                if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= registeredAspectAbilities.Find(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == self.equipmentSlot.equipmentIndex).aiMaxDistance)
                                 {
                                     enemyNearby = true;
                                 }
@@ -81,7 +88,7 @@ namespace TheMysticSword.AspectAbilities
             // make enigma artifact not reroll aspects
             On.RoR2.Artifacts.EnigmaArtifactManager.OnServerEquipmentActivated += (orig, equipmentSlot, equipmentIndex) =>
             {
-                if (registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == equipmentSlot.equipmentIndex)) return;
+                if (registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == equipmentSlot.equipmentIndex)) return;
                 orig(equipmentSlot, equipmentIndex);
             };
 
@@ -95,7 +102,7 @@ namespace TheMysticSword.AspectAbilities
                     if (characterMaster && characterMaster.hasBody)
                     {
                         CharacterBody body = characterMaster.GetBody();
-                        BodyFields bodyFields = body.GetComponent<BodyFields>();
+                        AspectAbilitiesBodyFields bodyFields = body.GetComponent<AspectAbilitiesBodyFields>();
                         if (bodyFields)
                         {
                             bodyFields.aiUseDelay += Random.Range(6f, 12f);
@@ -108,7 +115,14 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.CharacterBody.Awake += (orig, self) =>
             {
                 orig(self);
-                self.gameObject.AddComponent<BodyFields>();
+                self.gameObject.AddComponent<AspectAbilitiesBodyFields>();
+            };
+
+            // Load the content pack
+            On.RoR2.ContentManager.SetContentPacks += (orig, newContentPacks) =>
+            {
+                newContentPacks.Add(new AspectAbilitiesContent());
+                orig(newContentPacks);
             };
 
             IL.RoR2.HealthComponent.TakeDamage += (il) =>
@@ -125,7 +139,7 @@ namespace TheMysticSword.AspectAbilities
                     c.Emit(OpCodes.Ldarg_1);
                     c.EmitDelegate<System.Action<HealthComponent, DamageInfo>>((self, damageInfo) =>
                     {
-                        BodyFields bodyFields = self.body.gameObject.GetComponent<BodyFields>();
+                        AspectAbilitiesBodyFields bodyFields = self.body.gameObject.GetComponent<AspectAbilitiesBodyFields>();
                         if (bodyFields)
                         {
                             damageInfo.procCoefficient *= Mathf.Max(bodyFields.multiplierOnHitProcsOnSelf, 0f);
@@ -155,7 +169,7 @@ namespace TheMysticSword.AspectAbilities
                     {
                         if (victimBody && attackerBody && attackerBody.master)
                         {
-                            BodyFields bodyFields = victimBody.gameObject.GetComponent<BodyFields>();
+                            AspectAbilitiesBodyFields bodyFields = victimBody.gameObject.GetComponent<AspectAbilitiesBodyFields>();
                             if (bodyFields && !Util.CheckRoll(100f * Mathf.Max(bodyFields.multiplierOnDeathProcsOnSelf, 0f), attackerBody.master))
                             {
                                 return false;
@@ -174,60 +188,35 @@ namespace TheMysticSword.AspectAbilities
             }
         }
 
-        public void Update()
-        {
-            LanguageManager.Update();
-        }
-
         public struct AspectAbility
         {
-            public AspectAbility(EquipmentIndex equipmentIndex, float aiMaxDistance)
-            {
-                this.equipmentIndex = equipmentIndex;
-                this.aiMaxDistance = aiMaxDistance;
-            }
-
-            public EquipmentIndex equipmentIndex;
+            public EquipmentDef equipmentDef;
             public float aiMaxDistance;
         }
 
         internal static List<AspectAbility> registeredAspectAbilities = new List<AspectAbility>();
-        internal static void RegisterAspectAbility(EquipmentIndex equipmentIndex, float cooldown, System.Func<EquipmentSlot, bool> onUse, float aiMaxDistance = 60f)
+        internal static void RegisterAspectAbility(EquipmentDef equipmentDef, float cooldown, System.Func<EquipmentSlot, bool> onUse, float aiMaxDistance = 60f)
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
                 orig();
-                EquipmentCatalog.GetEquipmentDef(equipmentIndex).cooldown = cooldown;
+                equipmentDef.cooldown = cooldown;
+                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
             };
 
-            LanguageManager.aspectAbilityStringTokens.Add(equipmentIndex, new Dictionary<string, string>());
-
-            On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentIndex2) =>
+            On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
             {
-                if (equipmentIndex2 == equipmentIndex)
+                if (equipmentDef2 == equipmentDef)
                 {
                     return onUse(self);
                 }
-                return orig(self, equipmentIndex2);
+                return orig(self, equipmentDef2);
             };
 
             registeredAspectAbilities.Add(new AspectAbility{
-                equipmentIndex = equipmentIndex,
+                equipmentDef = equipmentDef,
                 aiMaxDistance = aiMaxDistance
             });
-        }
-
-        internal static float GetEliteDamageMultiplier(EliteIndex eliteIndex)
-        {
-            CombatDirector.EliteTierDef[] eliteTiers = typeof(CombatDirector).GetFieldValue<CombatDirector.EliteTierDef[]>("eliteTiers");
-            foreach (CombatDirector.EliteTierDef eliteTier in eliteTiers)
-            {
-                if (eliteTier.isAvailable() && System.Array.Exists(eliteTier.eliteTypes, eliteType => eliteType == eliteIndex))
-                {
-                    return eliteTier.damageBoostCoefficient;
-                }
-            }
-            return 1f;
         }
 
         internal static BaseAI.Target GetAITarget(CharacterMaster characterMaster)
@@ -244,7 +233,7 @@ namespace TheMysticSword.AspectAbilities
             return targets.FirstOrDefault();
         }
 
-        public class BodyFields : NetworkBehaviour
+        public class AspectAbilitiesBodyFields : NetworkBehaviour
         {
             public float aiUseDelay = 1f;
             public float aiUseDelayMax = 1f;
@@ -291,13 +280,60 @@ namespace TheMysticSword.AspectAbilities
                             c.Emit(OpCodes.Ldarg_2);
                             c.EmitDelegate<System.Func<EquipmentSlot, bool>>((equipmentSlot) =>
                             {
-                                return registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentIndex == equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
+                                return registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
                             });
                             c.Emit(OpCodes.Brtrue, label);
                         }
                     }
                 );
             }
+        }
+    }
+
+    public class AspectAbilitiesContent : ContentPack
+    {
+        public AspectAbilitiesContent()
+        {
+            Init();
+            buffDefs = Buffs.buffDefs;
+            projectilePrefabs = Resources.projectilePrefabs.ToArray();
+            bodyPrefabs = Resources.bodyPrefabs.ToArray();
+            masterPrefabs = Resources.masterPrefabs.ToArray();
+            effectDefs = Resources.effectPrefabs.ConvertAll(x => new EffectDef(x)).ToArray();
+            entityStateTypes = entityStateTypes.ToArray();
+            networkSoundEventDefs = Resources.networkSoundEventDefs.ToArray();
+        }
+
+        public static void Init()
+        {
+            Buffs.Load();
+        }
+
+        public static class Buffs
+        {
+            public static void Load()
+            {
+                buffDefs = new BuffDef[]
+                {
+                    IceCrystalDebuff,
+                    AltLunarShell
+                };
+            }
+
+            public static BuffDef[] buffDefs;
+
+            public static BuffDef IceCrystalDebuff;
+            public static BuffDef AltLunarShell;
+        }
+
+        public static class Resources
+        {
+            public static List<GameObject> projectilePrefabs = new List<GameObject>();
+            public static List<GameObject> bodyPrefabs = new List<GameObject>();
+            public static List<GameObject> masterPrefabs = new List<GameObject>();
+            public static List<GameObject> effectPrefabs = new List<GameObject>();
+            public static List<System.Type> entityStateTypes = new List<System.Type>();
+            public static List<NetworkSoundEventDef> networkSoundEventDefs = new List<NetworkSoundEventDef>();
         }
     }
 }
