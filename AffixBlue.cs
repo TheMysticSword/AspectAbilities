@@ -9,10 +9,19 @@ using System.Linq;
 
 namespace TheMysticSword.AspectAbilities
 {
-    public static class AffixBlue
+    public class AffixBlue : BaseAspectAbility
     {
-        public static void Init()
+        public override void OnLoad()
         {
+            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            {
+                orig();
+                equipmentDef = RoR2Content.Equipment.AffixBlue;
+                equipmentDef.cooldown = 15f;
+                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+            };
+            aiMaxDistance = Mathf.Infinity;
+
             NetworkingAPI.RegisterMessageType<OverloadingBlinkController.SyncFire>();
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
@@ -20,65 +29,64 @@ namespace TheMysticSword.AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<OverloadingBlinkController>();
             };
+        }
 
-            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixBlue, 15f,
-                (self) =>
+        public override bool OnUse(EquipmentSlot self)
+        {
+            // teleport to the cursor
+            Util.PlaySound("Play_jellyfish_spawn", self.characterBody.gameObject);
+            float minDistance = 35f;
+            float maxDistance = 2000f;
+            Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
+            RaycastHit raycastHit;
+            Vector3 startPosition = self.characterBody.transform.position;
+            Vector3 endPosition = aimRay.GetPoint(maxDistance);
+            if (Physics.Raycast(aimRay, out raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+            {
+                endPosition = raycastHit.point;
+            }
+
+            if (!self.characterBody.isPlayerControlled)
+            {
+                // ai tweaks:
+                // teleport in front of the target with slight angle variation
+                // NEVER teleport behind a player - you won't notice an enemy that suddenly appears behind you
+                if (self.characterBody.master)
                 {
-                    // teleport to the cursor
-                    Util.PlaySound("Play_jellyfish_spawn", self.characterBody.gameObject);
-                    float minDistance = 35f;
-                    float maxDistance = 2000f;
-                    Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
-                    RaycastHit raycastHit;
-                    Vector3 startPosition = self.characterBody.transform.position;
-                    Vector3 endPosition = aimRay.GetPoint(maxDistance);
-                    if (Physics.Raycast(aimRay, out raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+                    RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
+                    if (target != null && target.bestHurtBox)
                     {
-                        endPosition = raycastHit.point;
-                    }
-
-                    if (!self.characterBody.isPlayerControlled)
-                    {
-                        // ai tweaks:
-                        // teleport in front of the target with slight angle variation
-                        // NEVER teleport behind a player - you won't notice an enemy that suddenly appears behind you
-                        if (self.characterBody.master)
+                        float angle = Random.value * 360f;
+                        if (target.bestHurtBox.healthComponent.body.inputBank)
                         {
-                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
-                            if (target != null && target.bestHurtBox)
-                            {
-                                float angle = Random.value * 360f;
-                                if (target.bestHurtBox.healthComponent.body.inputBank)
-                                {
-                                    float angleVariation = 35f;
-                                    angle = (Util.QuaternionSafeLookRotation(target.bestHurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
-                                }
-                                Vector3 offset = (25f + target.bestHurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
-                                endPosition = target.bestHurtBox.transform.position + offset;
-                            }
+                            float angleVariation = 35f;
+                            angle = (Util.QuaternionSafeLookRotation(target.bestHurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
                         }
+                        Vector3 offset = (25f + target.bestHurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
+                        endPosition = target.bestHurtBox.transform.position + offset;
                     }
+                }
+            }
 
-                    // teleport a bit farther if current teleport distance is too short
-                    float currentDistance = Vector3.Distance(startPosition, endPosition);
-                    if (currentDistance < minDistance)
-                    {
-                        Vector3 direction = (endPosition - startPosition).normalized;
-                        float extraDistance = minDistance - currentDistance;
-                        endPosition += extraDistance * direction;
-                    }
+            // teleport a bit farther if current teleport distance is too short
+            float currentDistance = Vector3.Distance(startPosition, endPosition);
+            if (currentDistance < minDistance)
+            {
+                Vector3 direction = (endPosition - startPosition).normalized;
+                float extraDistance = minDistance - currentDistance;
+                endPosition += extraDistance * direction;
+            }
 
-                    // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
-                    NodeGraph nodes = self.characterBody.isFlying ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
-                    NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
-                    nodes.GetNodePosition(nodeIndex, out endPosition);
+            // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
+            NodeGraph nodes = self.characterBody.isFlying ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
+            NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
+            nodes.GetNodePosition(nodeIndex, out endPosition);
 
-                    // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
-                    if (!self.characterBody.isFlying) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
+            // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
+            if (!self.characterBody.isFlying) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
 
-                    self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
-                    return true;
-                }, Mathf.Infinity);
+            self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
+            return true;
         }
 
         public class OverloadingBlinkController : NetworkBehaviour

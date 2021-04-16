@@ -8,15 +8,12 @@ using R2API.Networking;
 using R2API.Networking.Interfaces;
 using R2API.Utils;
 using System.Linq;
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
-using System.Collections;
 using System.Collections.Generic;
 using HG;
 
 namespace TheMysticSword.AspectAbilities
 {
-    public static class AffixWhite
+    public class AffixWhite : BaseAspectAbility
     {
         public static GameObject iceCrystal;
         public static GameObject iceCrystalProjectile;
@@ -24,9 +21,8 @@ namespace TheMysticSword.AspectAbilities
         public static SpawnCard iceCrystalSpawnCard;
         public static GameObject iceCrystalExplosionEffect;
         public static Color iceCrystalColor = new Color(209f / 255f, 236f / 255f, 236f / 255f);
-        public static BuffDef iceCrystalDebuff;
         public static float cursePenaltyStackFrequency = 0.2f;
-        public static float cursePenaltyPerStack = (15f / 100f) * cursePenaltyStackFrequency;
+        public static float cursePenaltyPerStack = (15f / 100f) * cursePenaltyStackFrequency; // 15% health reduction per second
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
 
         public static float defaultRadius = 30f;
@@ -34,149 +30,17 @@ namespace TheMysticSword.AspectAbilities
         public static float flyTime = 2f;
         public static int maxCrystals = 3;
 
-        public static void Init()
+        public override void OnLoad()
         {
-            iceCrystalDebuff = ScriptableObject.CreateInstance<BuffDef>();
-            iceCrystalDebuff.name = "AspectAbilitiesIceCrystalDebuff";
-            iceCrystalDebuff.buffColor = iceCrystalColor;
-            iceCrystalDebuff.canStack = false;
-            iceCrystalDebuff.iconSprite = Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
-            iceCrystalDebuff.isDebuff = true;
-            AspectAbilitiesContent.Buffs.IceCrystalDebuff = iceCrystalDebuff;
+            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            {
+                orig();
+                equipmentDef = RoR2Content.Equipment.AffixWhite;
+                equipmentDef.cooldown = 45f;
+                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+            };
 
             AspectAbilitiesContent.Resources.entityStateTypes.Add(typeof(GlacialWardDeath));
-            NetworkingAPI.RegisterMessageType<CurseCount.SyncStack>();
-
-            On.RoR2.CharacterBody.Awake += (orig, self) =>
-            {
-                orig(self);
-                self.gameObject.AddComponent<CurseCount>();
-            };
-
-            // actual debuff logic. we need to inject into RecalculateStats - the function that defines all character stats and considers all items and buffs
-            IL.RoR2.CharacterBody.RecalculateStats += (il) =>
-            {
-                ILCursor c = new ILCursor(il);
-                int maxHealthPrevPos = 48;
-                int maxShieldPrevPos = 49;
-                int trueMaxHealthPos = 50;
-                int trueMaxShieldPos = 52;
-                int permaCurseBuffCountPos = 78;
-                int maxHealthDeltaPos = 80;
-                int maxShieldDeltaPos = 81;
-                // increase curse penalty
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchLdcR4(1),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("set_cursePenalty")
-                );
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchCallOrCallvirt<CharacterBody>("GetBuffCount"),
-                    x => x.MatchStloc(permaCurseBuffCountPos)
-                );
-                c.Emit(OpCodes.Ldarg_0);
-                c.EmitDelegate<System.Action<CharacterBody>>((characterBody) =>
-                {
-                    CurseCount curseCount = characterBody.GetComponent<CurseCount>();
-                    if (curseCount.current > 0)
-                    {
-                        // need to use this here instead of characterBody.InvokeMethod - Rein's Sniper subclasses CharacterBody and InvokeMethod can't find the property on that new subclass
-                        typeof(CharacterBody).GetProperty("cursePenalty").SetValue(characterBody, characterBody.cursePenalty + curseCount.current);
-                    }
-                });
-                // don't regen health when this curse penalty is removed
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("get_maxHealth"),
-                    x => x.MatchLdloc(maxHealthPrevPos),
-                    x => x.MatchSub(),
-                    x => x.MatchStloc(maxHealthDeltaPos)
-                );
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, trueMaxHealthPos);
-                c.Emit(OpCodes.Ldloc, maxHealthDeltaPos);
-                c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
-                {
-                    CurseCount curseCount = characterBody.GetComponent<CurseCount>();
-                    float healthGained = (trueMaxHealth / (1f + curseCount.current)) - (trueMaxHealth / (1f + curseCount.last));
-                    if (healthGained > 0)
-                    {
-                        maxHealthDelta -= healthGained;
-                    }
-                    else if (healthGained < 0)
-                    {
-                        float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.last)));
-                        // don't reduce below 1
-                        if (takeDamage > characterBody.healthComponent.Networkhealth)
-                        {
-                            takeDamage = characterBody.healthComponent.Networkhealth - 1f;
-                        }
-                        if (takeDamage > 0) characterBody.healthComponent.Networkhealth -= takeDamage;
-                    }
-                    return maxHealthDelta;
-                });
-                c.Emit(OpCodes.Stloc, maxHealthDeltaPos);
-                // do the same with shields
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("get_maxShield"),
-                    x => x.MatchLdloc(maxShieldPrevPos),
-                    x => x.MatchSub(),
-                    x => x.MatchStloc(maxShieldDeltaPos)
-                );
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, trueMaxShieldPos);
-                c.Emit(OpCodes.Ldloc, maxShieldDeltaPos);
-                c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
-                {
-                    CurseCount curseCount = characterBody.GetComponent<CurseCount>();
-                    float healthGained = (trueMaxHealth / (1f + curseCount.current)) - (trueMaxHealth / (1f + curseCount.last));
-                    if (healthGained > 0)
-                    {
-                        maxHealthDelta -= healthGained;
-                    }
-                    else if (healthGained < 0)
-                    {
-                        float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.last)));
-                        // don't reduce below 1
-                        if (takeDamage > characterBody.healthComponent.Networkshield)
-                        {
-                            takeDamage = characterBody.healthComponent.Networkshield - 1f;
-                        }
-                        if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
-                    }
-                    return maxHealthDelta;
-                });
-                c.Emit(OpCodes.Stloc, maxShieldDeltaPos);
-            };
-            On.RoR2.CharacterBody.RecalculateStats += (orig, self) =>
-            {
-                orig(self);
-                CurseCount curseCount = self.GetComponent<CurseCount>();
-                curseCount.last = curseCount.current;
-            };
-            /*
-             * normally, the curse value is reduced by the CurseCount instance
-             * however, if the buff gets manually removed (e.g. Blast Shower), nothing happens because the curse value gets re-set by CurseCount on the next frame
-             * that's why we need to manually reduce the curse count when all debuff stacks are lost
-             */
-            On.RoR2.CharacterBody.OnBuffFinalStackLost += (orig, self, buffDef) =>
-            {
-                orig(self, buffDef);
-                if (buffDef == iceCrystalDebuff)
-                {
-                    CurseCount curseCount = self.GetComponent<CurseCount>();
-                    if (curseCount.current > 0f)
-                    {
-                        curseCount.current = 0f;
-                        self.SetFieldValue("statsDirty", true);
-                    }
-                }
-            };
 
             // create glacial ward prefab
             iceCrystal = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/TimeCrystalBody"), "AspectAbilitiesIceCrystalBody");
@@ -258,61 +122,60 @@ namespace TheMysticSword.AspectAbilities
             AspectAbilitiesContent.Resources.bodyPrefabs.Add(iceCrystal);
             AspectAbilitiesContent.Resources.effectPrefabs.Add(iceCrystalExplosionEffect);
             AspectAbilitiesContent.Resources.projectilePrefabs.Add(iceCrystalProjectile);
+        }
 
-            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixWhite, 45f,
-                (self) =>
+        public override bool OnUse(EquipmentSlot self)
+        {
+            // spawn a health-reducing crystal ward
+            Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
+
+            bool fire = false;
+            Vector3 finalPosition = Vector3.zero;
+            RaycastHit raycastHit;
+            if (Physics.Raycast(aimRay, out raycastHit, 1000f, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+            {
+                finalPosition = raycastHit.point;
+                fire = true;
+            }
+            if (!self.characterBody.isPlayerControlled)
+            {
+                if (self.characterBody.master)
                 {
-                    // spawn a health-reducing crystal ward
-                    Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
-
-                    bool fire = false;
-                    Vector3 finalPosition = Vector3.zero;
-                    RaycastHit raycastHit;
-                    if (Physics.Raycast(aimRay, out raycastHit, 1000f, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+                    RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
+                    if (target != null && target.bestHurtBox)
                     {
-                        finalPosition = raycastHit.point;
+                        finalPosition = target.bestHurtBox.transform.position;
                         fire = true;
                     }
-                    if (!self.characterBody.isPlayerControlled)
-                    {
-                        if (self.characterBody.master)
-                        {
-                            RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
-                            if (target != null && target.bestHurtBox)
-                            {
-                                finalPosition = target.bestHurtBox.transform.position;
-                                fire = true;
-                            }
-                        }
-                    }
-                    if (fire)
-                    {
-                        Vector3 distance = finalPosition - aimRay.origin;
-                        Vector2 distance2 = new Vector2(distance.x, distance.z);
-                        float magnitude = distance2.magnitude;
-                        Vector2 vector2 = distance2 / magnitude;
-                        float y = Trajectory.CalculateInitialYSpeed(flyTime, distance.y);
-                        float num = magnitude / flyTime;
-                        Vector3 direction = new Vector3(vector2.x * num, y, vector2.y * num);
-                        magnitude = direction.magnitude;
+                }
+            }
+            if (fire)
+            {
+                Vector3 distance = finalPosition - aimRay.origin;
+                Vector2 distance2 = new Vector2(distance.x, distance.z);
+                float magnitude = distance2.magnitude;
+                Vector2 vector2 = distance2 / magnitude;
+                float y = Trajectory.CalculateInitialYSpeed(flyTime, distance.y);
+                float num = magnitude / flyTime;
+                Vector3 direction = new Vector3(vector2.x * num, y, vector2.y * num);
+                magnitude = direction.magnitude;
 
-                        Quaternion rotation = Util.QuaternionSafeLookRotation(direction);
-                        ProjectileManager.instance.FireProjectile(
-                            iceCrystalProjectile,
-                            aimRay.origin,
-                            rotation,
-                            self.characterBody.gameObject,
-                            0f,
-                            0f,
-                            false,
-                            DamageColorIndex.Default,
-                            null,
-                            magnitude
-                        );
-                        return true;
-                    }
-                    return false;
-                });
+                Quaternion rotation = Util.QuaternionSafeLookRotation(direction);
+                ProjectileManager.instance.FireProjectile(
+                    iceCrystalProjectile,
+                    aimRay.origin,
+                    rotation,
+                    self.characterBody.gameObject,
+                    0f,
+                    0f,
+                    false,
+                    DamageColorIndex.Default,
+                    null,
+                    magnitude
+                );
+                return true;
+            }
+            return false;
         }
 
         public class GlacialWardController : MonoBehaviour
@@ -393,7 +256,7 @@ namespace TheMysticSword.AspectAbilities
                                     CharacterBody body2 = teamComponent.GetComponent<CharacterBody>();
                                     if (body2)
                                     {
-                                        body2.GetComponent<CurseCount>().Stack(cursePenaltyPerStack, cursePenaltyStackFrequency);
+                                        body2.GetComponent<Buffs.IceCrystalDebuff.CurseCount>().Stack(cursePenaltyPerStack, cursePenaltyStackFrequency);
                                     }
                                 }
                             }
@@ -485,107 +348,6 @@ namespace TheMysticSword.AspectAbilities
             private float stopwatch;
         }
 
-        public class CurseCount : NetworkBehaviour
-        {
-            public CharacterBody characterBody;
-            public float current = 0f;
-            public float last = 0f;
-            public float decayTotal = 0f;
-            public float decayTime = 3f;
-            public float noDecayTime = 0f;
-            public float updateStatsTime = 0f;
-            public float updateStatsTimeMax = cursePenaltyStackFrequency;
-            public bool canStackNow = true;
-
-            public void Awake()
-            {
-                characterBody = GetComponent<CharacterBody>();
-            }
-
-            public void Stack(float count, float noDecayTime)
-            {
-                if (canStackNow)
-                {
-                    canStackNow = false;
-                    current += count;
-                    this.noDecayTime = noDecayTime + 0.1f;
-                    decayTotal = current;
-                    characterBody.SetFieldValue("outOfDangerStopwatch", 0f);
-                    characterBody.SetFieldValue("statsDirty", true);
-
-                    if (NetworkServer.active)
-                    {
-                        characterBody.AddTimedBuff(iceCrystalDebuff, decayTime);
-                        new SyncStack(gameObject.GetComponent<NetworkIdentity>().netId, count, noDecayTime).Send(NetworkDestination.Clients);
-                    }
-                }
-            }
-
-            public class SyncStack : INetMessage
-            {
-                NetworkInstanceId objID;
-                float count;
-                float noDecayTime;
-
-                public SyncStack()
-                {
-                }
-
-                public SyncStack(NetworkInstanceId objID, float count, float noDecayTime)
-                {
-                    this.objID = objID;
-                    this.count = count;
-                    this.noDecayTime = noDecayTime;
-                }
-
-                public void Deserialize(NetworkReader reader)
-                {
-                    objID = reader.ReadNetworkId();
-                    count = reader.ReadSingle();
-                    noDecayTime = reader.ReadSingle();
-                }
-
-                public void OnReceived()
-                {
-                    if (NetworkServer.active) return;
-                    GameObject obj = Util.FindNetworkObject(objID);
-                    if (!obj) return;
-                    CurseCount curseCount = obj.GetComponent<CurseCount>();
-                    curseCount.Stack(count, noDecayTime);
-                }
-
-                public void Serialize(NetworkWriter writer)
-                {
-                    writer.Write(objID);
-                    writer.Write(count);
-                    writer.Write(noDecayTime);
-                }
-            }
-
-            public void FixedUpdate()
-            {
-                updateStatsTime += Time.fixedDeltaTime;
-                if (updateStatsTime >= updateStatsTimeMax)
-                {
-                    canStackNow = true;
-                    updateStatsTime = 0f;
-                }
-
-                noDecayTime -= Time.fixedDeltaTime;
-                if (noDecayTime <= 0 && current > 0f)
-                {
-                    current -= (decayTotal / decayTime) * Time.fixedDeltaTime;
-                    if (updateStatsTime == 0f) characterBody.SetFieldValue("statsDirty", true);
-                    if (current < 0f)
-                    {
-                        characterBody.SetFieldValue("statsDirty", true);
-                        current = 0f;
-                        if (NetworkServer.active && characterBody.HasBuff(iceCrystalDebuff)) characterBody.RemoveBuff(iceCrystalDebuff);
-                    }
-                }
-            }
-        }
-
         private class GlacialProjectileTweaks : MonoBehaviour
         {
             Rigidbody rigidbody;
@@ -625,7 +387,7 @@ namespace TheMysticSword.AspectAbilities
 
             private void FixedUpdate()
             {
-                rigidbody.rotation = Util.QuaternionSafeLookRotation(rigidbody.velocity);
+                if (rigidbody.velocity != Vector3.zero) rigidbody.rotation = Util.QuaternionSafeLookRotation(rigidbody.velocity);
             }
         }
     }

@@ -14,6 +14,8 @@ using System.Collections.ObjectModel;
 using HG;
 using System.Security;
 using System.Security.Permissions;
+using RoR2.ContentManagement;
+using System.Collections;
 
 [module: UnverifiableCode]
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -26,61 +28,66 @@ namespace TheMysticSword.AspectAbilities
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilitiesPlugin : BaseUnityPlugin
     {
-        const string PluginGUID = "com.TheMysticSword.AspectAbilities";
-        const string PluginName = "AspectAbilities";
-        const string PluginVersion = "1.4.0";
+        public const string PluginGUID = "com.TheMysticSword.AspectAbilities";
+        public const string PluginName = "AspectAbilities";
+        public const string PluginVersion = "1.4.1";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
+        public static BepInEx.Logging.ManualLogSource logger;
+
+        public const string TokenPrefix = PluginName + "_";
+
         public void Awake()
         {
+            logger = Logger;
+
             GenericGameEvents.Init();
             LanguageManager.Init();
             StateSeralizerFix.Init();
 
-            AffixRed.Init();
-            AffixBlue.Init();
-            AffixWhite.Init();
-            AffixPoison.Init();
-            AffixHaunted.Init();
-            AffixLunar.Init();
-
             // make elites auto-use equipment
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
-                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == self.equipmentSlot.equipmentIndex) && self.inputBank && !self.isPlayerControlled && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue)
+                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && self.inputBank && !self.isPlayerControlled)
                 {
-                    AspectAbilitiesBodyFields bodyFields = self.GetComponent<AspectAbilitiesBodyFields>();
-                    if (bodyFields && bodyFields.aiCanUse)
+                    BaseAspectAbility aspectAbility = FindAspectAbility(self.equipmentSlot.equipmentIndex);
+                    if (aspectAbility != default)
                     {
-                        bodyFields.aiCanUse = false;
-
-                        bool spawning = false;
-                        EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
-                        foreach (EntityStateMachine stateMachine in stateMachines)
+                        AspectAbilitiesBodyFields bodyFields = self.GetComponent<AspectAbilitiesBodyFields>();
+                        if (bodyFields && bodyFields.aiCanUse)
                         {
-                            if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
-                            {
-                                spawning = true;
-                                break;
-                            }
-                        }
+                            bodyFields.aiCanUse = false;
 
-                        bool enemyNearby = false;
-                        if (self.master)
-                        {
-                            BaseAI[] aiComponents = self.master.GetFieldValue<BaseAI[]>("aiComponents");
-                            foreach (BaseAI ai in aiComponents)
+                            bool spawning = false;
+                            EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
+                            foreach (EntityStateMachine stateMachine in stateMachines)
                             {
-                                if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= registeredAspectAbilities.Find(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == self.equipmentSlot.equipmentIndex).aiMaxDistance)
+                                if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
                                 {
-                                    enemyNearby = true;
+                                    spawning = true;
+                                    break;
                                 }
                             }
-                        }
 
-                        float randomChance = (1f - self.healthComponent.combinedHealthFraction) * 200f;
-                        if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
+                            bool enemyNearby = false;
+                            if (aspectAbility.aiMaxDistance == Mathf.Infinity) enemyNearby = true;
+                            else if (aspectAbility.aiMaxDistance <= 0f) enemyNearby = false;
+                            else if (self.master)
+                            {
+                                BaseAI[] aiComponents = self.master.GetFieldValue<BaseAI[]>("aiComponents");
+                                foreach (BaseAI ai in aiComponents)
+                                {
+                                    if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= aspectAbility.aiMaxDistance)
+                                    {
+                                        enemyNearby = true;
+                                    }
+                                }
+                            }
+
+                            float randomChance = (1f - self.healthComponent.combinedHealthFraction) * 200f;
+                            if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
+                        }
                     }
                 }
                 orig(self);
@@ -88,7 +95,7 @@ namespace TheMysticSword.AspectAbilities
             // make enigma artifact not reroll aspects
             On.RoR2.Artifacts.EnigmaArtifactManager.OnServerEquipmentActivated += (orig, equipmentSlot, equipmentIndex) =>
             {
-                if (registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == equipmentSlot.equipmentIndex)) return;
+                if (FindAspectAbility(equipmentIndex) != default) return;
                 orig(equipmentSlot, equipmentIndex);
             };
 
@@ -119,10 +126,19 @@ namespace TheMysticSword.AspectAbilities
             };
 
             // Load the content pack
-            On.RoR2.ContentManager.SetContentPacks += (orig, newContentPacks) =>
+            ContentManager.collectContentPackProviders += (addContentPackProvider) =>
             {
-                newContentPacks.Add(new AspectAbilitiesContent());
-                orig(newContentPacks);
+                addContentPackProvider(new AspectAbilitiesContent());
+            };
+
+            On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
+            {
+                BaseAspectAbility aspectAbility = FindAspectAbility(equipmentDef2);
+                if (aspectAbility != default)
+                {
+                    return aspectAbility.OnUse(self);
+                }
+                return orig(self, equipmentDef2);
             };
 
             IL.RoR2.HealthComponent.TakeDamage += (il) =>
@@ -188,35 +204,14 @@ namespace TheMysticSword.AspectAbilities
             }
         }
 
-        public struct AspectAbility
+        internal static List<BaseAspectAbility> registeredAspectAbilities = new List<BaseAspectAbility>();
+        public static BaseAspectAbility FindAspectAbility(EquipmentDef equipmentDef)
         {
-            public EquipmentDef equipmentDef;
-            public float aiMaxDistance;
+            return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef == equipmentDef);
         }
-
-        internal static List<AspectAbility> registeredAspectAbilities = new List<AspectAbility>();
-        internal static void RegisterAspectAbility(EquipmentDef equipmentDef, float cooldown, System.Func<EquipmentSlot, bool> onUse, float aiMaxDistance = 60f)
+        public static BaseAspectAbility FindAspectAbility(EquipmentIndex equipmentIndex)
         {
-            On.RoR2.EquipmentCatalog.Init += (orig) =>
-            {
-                orig();
-                equipmentDef.cooldown = cooldown;
-                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
-            };
-
-            On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
-            {
-                if (equipmentDef2 == equipmentDef)
-                {
-                    return onUse(self);
-                }
-                return orig(self, equipmentDef2);
-            };
-
-            registeredAspectAbilities.Add(new AspectAbility{
-                equipmentDef = equipmentDef,
-                aiMaxDistance = aiMaxDistance
-            });
+            return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef.equipmentIndex == equipmentIndex);
         }
 
         internal static BaseAI.Target GetAITarget(CharacterMaster characterMaster)
@@ -290,40 +285,91 @@ namespace TheMysticSword.AspectAbilities
         }
     }
 
-    public class AspectAbilitiesContent : ContentPack
+    public class AspectAbilitiesContent : IContentPackProvider
     {
-        public AspectAbilitiesContent()
+        public string identifier
         {
-            Init();
-            buffDefs = Buffs.buffDefs;
-            projectilePrefabs = Resources.projectilePrefabs.ToArray();
-            bodyPrefabs = Resources.bodyPrefabs.ToArray();
-            masterPrefabs = Resources.masterPrefabs.ToArray();
-            effectDefs = Resources.effectPrefabs.ConvertAll(x => new EffectDef(x)).ToArray();
-            entityStateTypes = entityStateTypes.ToArray();
-            networkSoundEventDefs = Resources.networkSoundEventDefs.ToArray();
+            get
+            {
+                return AspectAbilitiesPlugin.PluginName;
+            }
         }
 
-        public static void Init()
+        public IEnumerator LoadStaticContentAsync(LoadStaticContentAsyncArgs args)
         {
-            Buffs.Load();
+            contentPack.identifier = identifier;
+            AspectAbilities.ContentManagement.ContentLoadHelper contentLoadHelper = new AspectAbilities.ContentManagement.ContentLoadHelper();
+            System.Action[] loadDispatchers = new System.Action[]
+            {
+                () =>
+                {
+                    contentLoadHelper.DispatchLoad<BuffDef>(typeof(AspectAbilities.Buffs.BaseBuff), x => contentPack.buffDefs.Add(x));
+                },
+                () =>
+                {
+                    contentLoadHelper.DispatchLoad<BaseAspectAbility>(typeof(BaseAspectAbility), x => AspectAbilitiesPlugin.registeredAspectAbilities = AspectAbilitiesPlugin.registeredAspectAbilities.Concat(x).ToList());
+                }
+            };
+            int num;
+            for (int i = 0; i < loadDispatchers.Length; i = num)
+            {
+                loadDispatchers[i]();
+                args.ReportProgress(Util.Remap((float)(i + 1), 0f, (float)loadDispatchers.Length, 0f, 0.05f));
+                yield return null;
+                num = i + 1;
+            }
+            while (contentLoadHelper.coroutine.MoveNext())
+            {
+                args.ReportProgress(Util.Remap(contentLoadHelper.progress.value, 0f, 1f, 0.05f, 0.95f));
+                yield return contentLoadHelper.coroutine.Current;
+            }
+            loadDispatchers = new System.Action[]
+            {
+                () =>
+                {
+                    ContentLoadHelper.PopulateTypeFields<BuffDef>(typeof(Buffs), contentPack.buffDefs);
+                    AspectAbilities.ContentManagement.ContentLoadHelper.AddModPrefixToAssets<BuffDef>(contentPack.buffDefs);
+                },
+                () =>
+                {
+                    contentPack.projectilePrefabs.Add(Resources.projectilePrefabs.ToArray());
+                    contentPack.bodyPrefabs.Add(Resources.bodyPrefabs.ToArray());
+                    contentPack.masterPrefabs.Add(Resources.masterPrefabs.ToArray());
+                    contentPack.effectDefs.Add(Resources.effectPrefabs.ConvertAll(x => new EffectDef(x)).ToArray());
+                    contentPack.entityStateTypes.Add(Resources.entityStateTypes.ToArray());
+                    contentPack.networkSoundEventDefs.Add(Resources.networkSoundEventDefs.ToArray());
+                }
+            };
+            for (int i = 0; i < loadDispatchers.Length; i = num)
+            {
+                loadDispatchers[i]();
+                args.ReportProgress(Util.Remap((float)(i + 1), 0f, (float)loadDispatchers.Length, 0.95f, 0.99f));
+                yield return null;
+                num = i + 1;
+            }
+            loadDispatchers = null;
+            yield break;
         }
+
+        public IEnumerator GenerateContentPackAsync(GetContentPackAsyncArgs args)
+        {
+            ContentPack.Copy(contentPack, args.output);
+            args.ReportProgress(1f);
+            yield break;
+        }
+
+        public IEnumerator FinalizeAsync(FinalizeAsyncArgs args)
+        {
+            args.ReportProgress(1f);
+            yield break;
+        }
+
+        private ContentPack contentPack = new ContentPack();
 
         public static class Buffs
         {
-            public static void Load()
-            {
-                buffDefs = new BuffDef[]
-                {
-                    IceCrystalDebuff,
-                    AltLunarShell
-                };
-            }
-
-            public static BuffDef[] buffDefs;
-
-            public static BuffDef IceCrystalDebuff;
             public static BuffDef AltLunarShell;
+            public static BuffDef IceCrystalDebuff;
         }
 
         public static class Resources

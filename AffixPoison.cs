@@ -7,13 +7,21 @@ using System.Linq;
 
 namespace TheMysticSword.AspectAbilities
 {
-    public static class AffixPoison
+    public class AffixPoison : BaseAspectAbility
     {
         public static GameObject malachiteUrchinOrbitalMaster;
         public static GameObject malachiteUrchinOrbitalBody;
 
-        public static void Init()
+        public override void OnLoad()
         {
+            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            {
+                orig();
+                equipmentDef = RoR2Content.Equipment.AffixPoison;
+                equipmentDef.cooldown = 90f;
+                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+            };
+
             // clone the body and the master in case we want to change the stats of the urchins
             malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster");
             malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody");
@@ -28,14 +36,13 @@ namespace TheMysticSword.AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<MalachiteOrbitalController>();
             };
+        }
 
-            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixPoison, 90f,
-                (self) =>
-                {
-                    MalachiteOrbitalController orbitalController = self.characterBody.GetComponent<MalachiteOrbitalController>();
-                    orbitalController.respawn += orbitalController.totalNormal;
-                    return true;
-                });
+        public override bool OnUse(EquipmentSlot self)
+        {
+            MalachiteOrbitalController orbitalController = self.characterBody.GetComponent<MalachiteOrbitalController>();
+            orbitalController.respawn += orbitalController.totalNormal;
+            return true;
         }
 
         public class MalachiteOrbitalController : NetworkBehaviour

@@ -27,6 +27,9 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.4.1:
+* Now works on game version 1.1.1.2
+* Fixed a bug with Perfected ability playing the buff preparing sound twice
 #### 1.4.0:
 * Now works on the Anniversary Update version of the game
 * Added Perfected aspect ability

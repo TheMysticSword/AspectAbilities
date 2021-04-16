@@ -11,15 +11,23 @@ using System.Collections.ObjectModel;
 
 namespace TheMysticSword.AspectAbilities
 {
-    public static class AffixHaunted
+    public class AffixHaunted : BaseAspectAbility
     {
         public static GameObject healPulse;
         public static Color colorHaunted = new Color(0f / 255f, 180f / 255f, 140f / 255f);
         public static Color colorHauntedBright = new Color(150f / 255f, 220f / 255f, 220f / 255f);
         public static Texture2D remapHealingToHauntedTexture;
 
-        public static void Init()
+        public override void OnLoad()
         {
+            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            {
+                orig();
+                equipmentDef = RoR2Content.Equipment.AffixHaunted;
+                equipmentDef.cooldown = 15f;
+                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+            };
+
             remapHealingToHauntedTexture = new Texture2D(256, 16, TextureFormat.ARGB32, false);
             remapHealingToHauntedTexture.wrapMode = TextureWrapMode.Clamp;
             remapHealingToHauntedTexture.filterMode = FilterMode.Bilinear;
@@ -37,53 +45,52 @@ namespace TheMysticSword.AspectAbilities
 
             NetworkingAPI.RegisterMessageType<HealPulseController.SyncFire>();
             NetworkingAPI.RegisterMessageType<HealPulseController.SyncFireFailed>();
+        }
 
-            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixHaunted, 15f,
-                (self) =>
+        public override bool OnUse(EquipmentSlot self)
+        {
+            // cast an AoE heal for allies
+            GameObject affixHauntedWard = self.characterBody.GetComponent<CharacterBody.AffixHauntedBehavior>().GetFieldValue<GameObject>("affixHauntedWard");
+            if (affixHauntedWard)
+            {
+                GameObject healPulseObject = Object.Instantiate(healPulse);
+                healPulseObject.SetActive(true);
+                NetworkServer.Spawn(healPulseObject);
+                HealPulseController healPulseController = healPulseObject.GetComponent<HealPulseController>();
+                healPulseController.Fire(self.characterBody.corePosition, affixHauntedWard.GetComponent<BuffWard>().radius, 0.33f, 1f, self.characterBody.teamComponent.teamIndex);
+
+                // remove bloom
+                Object.Destroy(healPulseController.displayedEffect.transform.Find("PP").gameObject);
+                // recolour the visual effect
+                ParticleSystem.MainModule particleSystem = healPulseController.displayedEffect.transform.Find("Particle System").gameObject.GetComponent<ParticleSystem>().main;
+                particleSystem.startColor = new ParticleSystem.MinMaxGradient(colorHaunted);
+                healPulseController.displayedEffect.transform.Find("Crosses").gameObject.GetComponent<ParticleSystemRenderer>().material.SetTexture("_RemapTex", remapHealingToHauntedTexture);
+                healPulseController.displayedEffect.transform.Find("Sphere").gameObject.GetComponent<MeshRenderer>().material.SetTexture("_RemapTex", remapHealingToHauntedTexture);
+                healPulseController.displayedEffect.transform.Find("Donut").gameObject.GetComponent<MeshRenderer>().material.SetTexture("_RemapTex", remapHealingToHauntedTexture);
+
+                // grab the "already healed" list, we will modify it
+                List<HealthComponent> healedTargets = healPulseController.healPulse.GetFieldValue<List<HealthComponent>>("healedTargets");
+                // add all celestines to the "already healed" list so that they don't heal each other and we don't heal ourselves
+                ReadOnlyCollection<TeamComponent> teamMembers = TeamComponent.GetTeamMembers(self.characterBody.teamComponent.teamIndex);
+                foreach (var teamMember in teamMembers)
                 {
-                // cast an AoE heal for allies
-                GameObject affixHauntedWard = self.characterBody.GetComponent<CharacterBody.AffixHauntedBehavior>().GetFieldValue<GameObject>("affixHauntedWard");
-                    if (affixHauntedWard)
+                    if (teamMember.body.equipmentSlot && teamMember.body.equipmentSlot.equipmentIndex == RoR2Content.Equipment.AffixHaunted.equipmentIndex)
                     {
-                        GameObject healPulseObject = Object.Instantiate(healPulse);
-                        healPulseObject.SetActive(true);
-                        NetworkServer.Spawn(healPulseObject);
-                        HealPulseController healPulseController = healPulseObject.GetComponent<HealPulseController>();
-                        healPulseController.Fire(self.characterBody.corePosition, affixHauntedWard.GetComponent<BuffWard>().radius, 0.33f, 1f, self.characterBody.teamComponent.teamIndex);
-
-                        // remove bloom
-                        Object.Destroy(healPulseController.displayedEffect.transform.Find("PP").gameObject);
-                        // recolour the visual effect
-                        ParticleSystem.MainModule particleSystem = healPulseController.displayedEffect.transform.Find("Particle System").gameObject.GetComponent<ParticleSystem>().main;
-                        particleSystem.startColor = new ParticleSystem.MinMaxGradient(colorHaunted);
-                        healPulseController.displayedEffect.transform.Find("Crosses").gameObject.GetComponent<ParticleSystemRenderer>().material.SetTexture("_RemapTex", remapHealingToHauntedTexture);
-                        healPulseController.displayedEffect.transform.Find("Sphere").gameObject.GetComponent<MeshRenderer>().material.SetTexture("_RemapTex", remapHealingToHauntedTexture);
-                        healPulseController.displayedEffect.transform.Find("Donut").gameObject.GetComponent<MeshRenderer>().material.SetTexture("_RemapTex", remapHealingToHauntedTexture);
-                        
-                        // grab the "already healed" list, we will modify it
-                        List<HealthComponent> healedTargets = healPulseController.healPulse.GetFieldValue<List<HealthComponent>>("healedTargets");
-                        // add all celestines to the "already healed" list so that they don't heal each other and we don't heal ourselves
-                        ReadOnlyCollection<TeamComponent> teamMembers = TeamComponent.GetTeamMembers(self.characterBody.teamComponent.teamIndex);
-                        foreach (var teamMember in teamMembers)
-                        {
-                            if (teamMember.body.equipmentSlot && teamMember.body.equipmentSlot.equipmentIndex == RoR2Content.Equipment.AffixHaunted.equipmentIndex)
-                            {
-                                healedTargets.Add(teamMember.body.healthComponent);
-                            }
-                        }
-                        // and add the caster to the "already healed" list so that they don't get healed
-                        if (!healedTargets.Contains(self.characterBody.healthComponent))
-                        {
-                            healedTargets.Add(self.characterBody.healthComponent);
-                        }
-                        // replace the pulse's healed list with our new one
-                        healPulseController.healPulse.SetFieldValue("healedTargets", healedTargets);
-
-                        // heal ourselves for a lower value
-                        self.characterBody.healthComponent.HealFraction(0.1f, default(ProcChainMask));
+                        healedTargets.Add(teamMember.body.healthComponent);
                     }
-                    return true;
-                });
+                }
+                // and add the caster to the "already healed" list so that they don't get healed
+                if (!healedTargets.Contains(self.characterBody.healthComponent))
+                {
+                    healedTargets.Add(self.characterBody.healthComponent);
+                }
+                // replace the pulse's healed list with our new one
+                healPulseController.healPulse.SetFieldValue("healedTargets", healedTargets);
+
+                // heal ourselves for a lower value
+                self.characterBody.healthComponent.HealFraction(0.1f, default(ProcChainMask));
+            }
+            return true;
         }
 
         public class HealPulseController : NetworkBehaviour

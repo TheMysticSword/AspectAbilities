@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace TheMysticSword.AspectAbilities
 {
-    public static class AffixRed
+    public class AffixRed : BaseAspectAbility
     {
         public static GameObject fireMissile;
         /*
@@ -20,8 +20,16 @@ namespace TheMysticSword.AspectAbilities
         public static float totalMissileDamage = 24f;
         public static int totalMissilesPerUse = 6;
 
-        public static void Init()
+        public override void OnLoad()
         {
+            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            {
+                orig();
+                equipmentDef = RoR2Content.Equipment.AffixRed;
+                equipmentDef.cooldown = 15f;
+                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+            };
+
             // create blazing missile prefab
             fireMissile = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/MageFireboltBasic"), "AspectAbilitiesFireMissile");
             fireMissile.GetComponent<ProjectileController>().procCoefficient = 0.25f;
@@ -63,13 +71,12 @@ namespace TheMysticSword.AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<BlazingMissileLauncher>();
             };
+        }
 
-            AspectAbilitiesPlugin.RegisterAspectAbility(RoR2Content.Equipment.AffixRed, 15f,
-                (self) =>
-                {
-                    self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += totalMissilesPerUse;
-                    return true;
-                });
+        public override bool OnUse(EquipmentSlot self)
+        {
+            self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += totalMissilesPerUse;
+            return true;
         }
 
         public class BlazingMissileLauncher : NetworkBehaviour
