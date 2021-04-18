@@ -87,7 +87,7 @@ namespace TheMysticSword.AspectAbilities
             nodes.GetNodePosition(nodeIndex, out endPosition);
 
             // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
-            if (!groundNodesDesired) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
+            if (groundNodesDesired) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
 
             self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
             return true;
