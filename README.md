@@ -27,6 +27,8 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.4.3:
+* Fixed flying enemies teleporting to ground nodes using the Overloading ability
 #### 1.4.2:
 * Fixed Ice Crystals showing up as Time Crystals for clients
 * Fixed Grandparents being stuck in Overloading blink infinitely, causing a softlock

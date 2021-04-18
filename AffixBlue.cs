@@ -78,22 +78,8 @@ namespace TheMysticSword.AspectAbilities
                 endPosition += extraDistance * direction;
             }
             
-            bool groundNodesDesired = true; // can't use CharacterBody.isFlying because it considers Grandparents to be flying type
-            bool useIsFlying = true; // but in case we can't get the desired node type, fall back to isFlying
-            CharacterMaster master = self.characterBody.master;
-            if (master)
-            {
-                BaseAI baseAI = master.GetComponent<BaseAI>();
-                if (baseAI)
-                {
-                    groundNodesDesired = baseAI.desiredSpawnNodeGraphType == MapNodeGroup.GraphType.Ground;
-                    useIsFlying = false;
-                }
-            }
-            if (useIsFlying)
-            {
-                groundNodesDesired = !self.characterBody.isFlying;
-            }
+            bool groundNodesDesired = !self.characterBody.isFlying;
+            if (self.characterBody.bodyIndex == BodyCatalog.FindBodyIndex("GrandParentBody")) groundNodesDesired = true; // because isFlying is true for Grandparents
 
             // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
             NodeGraph nodes = !groundNodesDesired ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
