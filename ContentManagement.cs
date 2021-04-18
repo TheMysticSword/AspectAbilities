@@ -32,6 +32,25 @@ namespace TheMysticSword.AspectAbilities.ContentManagement
             coroutine.Add(enumerator, enumerator.progressReceiver);
         }
 
+        public static void PluginAwakeLoad(System.Type loadType)
+        {
+            if (!typeof(BaseLoadableAsset).IsAssignableFrom(loadType))
+            {
+                AspectAbilitiesPlugin.logger.LogError($"Attempted to load {loadType.Name} that does not inherit from {typeof(BaseLoadableAsset).Name} during plugin awake");
+                return;
+            }
+            foreach (System.Type type in Assembly.GetExecutingAssembly().GetTypes().Where(x => !x.IsAbstract && loadType.IsAssignableFrom(x)).ToList())
+            {
+                BaseLoadableAsset loadableAsset = (BaseLoadableAsset)System.Activator.CreateInstance(type);
+                loadableAsset.OnPluginAwake();
+            }
+        }
+
+        public static void PluginAwakeLoad<T>()
+        {
+            PluginAwakeLoad(typeof(T));
+        }
+
         public class AsyncLoadingEnumerator<OutType> : IEnumerator<object>, IEnumerator, System.IDisposable
         {
             object IEnumerator<object>.Current
@@ -84,7 +103,7 @@ namespace TheMysticSword.AspectAbilities.ContentManagement
 
                     BaseLoadableAsset loadableAsset = (BaseLoadableAsset)System.Activator.CreateInstance(current);
                     loadableAsset.Load();
-                    if (loadableAsset.asset != null) loadedAssets.Add((OutType)loadableAsset.asset);
+                    loadedAssets.Add((OutType)loadableAsset.asset);
 
                     position++;
 
@@ -126,6 +145,7 @@ namespace TheMysticSword.AspectAbilities.ContentManagement
     public abstract class BaseLoadableAsset
     {
         public object asset;
+        public virtual void OnPluginAwake() { }
         public abstract void OnLoad();
         public virtual void Load()
         {

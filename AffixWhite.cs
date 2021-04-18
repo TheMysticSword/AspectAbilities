@@ -30,6 +30,12 @@ namespace TheMysticSword.AspectAbilities
         public static float flyTime = 2f;
         public static int maxCrystals = 3;
 
+        public override void OnPluginAwake()
+        {
+            iceCrystal = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/TimeCrystalBody"), "AspectAbilitiesIceCrystalBody");
+            iceCrystalProjectile = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/SporeGrenadeProjectile"), "AspectAbilitiesIceCrystalProjectile");
+        }
+
         public override void OnLoad()
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
@@ -43,8 +49,6 @@ namespace TheMysticSword.AspectAbilities
             AspectAbilitiesContent.Resources.entityStateTypes.Add(typeof(GlacialWardDeath));
 
             // create glacial ward prefab
-            iceCrystal = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/TimeCrystalBody"), "AspectAbilitiesIceCrystalBody");
-
             MeshCollider meshCollider = iceCrystal.AddComponent<MeshCollider>();
             meshCollider.gameObject.layer = LayerIndex.defaultLayer.intVal;
             meshCollider.sharedMesh = iceCrystal.transform.Find("ModelBase").Find("Mesh").gameObject.GetComponent<MeshFilter>().sharedMesh;
@@ -101,7 +105,6 @@ namespace TheMysticSword.AspectAbilities
             iceCrystalExplosionEffect.transform.Find("Particles").Find("LongLifeNoiseTrails").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
             iceCrystalExplosionEffect.transform.Find("Particles").Find("Dash, Bright").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
 
-            iceCrystalProjectile = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/SporeGrenadeProjectile"), "AspectAbilitiesIceCrystalProjectile");
             Object.Destroy(iceCrystalProjectile.GetComponent<ProjectileDamage>());
             Object.Destroy(iceCrystalProjectile.GetComponent<ProjectileImpactExplosion>());
             iceCrystalProjectile.AddComponent<ProjectileImpactEventCaller>();
@@ -229,7 +232,7 @@ namespace TheMysticSword.AspectAbilities
                         if (oldest)
                         {
                             oldest.gameObject.GetComponent<GlacialWardController>().effectOnDeath = false;
-                            oldest.healthComponent.Suicide();
+                            if (NetworkServer.active) oldest.healthComponent.Suicide();
                             instances.Remove(oldest);
                         }
                     }

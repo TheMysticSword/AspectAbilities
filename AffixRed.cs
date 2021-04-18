@@ -20,6 +20,18 @@ namespace TheMysticSword.AspectAbilities
         public static float totalMissileDamage = 24f;
         public static int totalMissilesPerUse = 6;
 
+        public override void OnPluginAwake()
+        {
+            fireMissile = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/MageFireboltBasic"), "AspectAbilitiesFireMissile");
+
+            GameObject targetPrefab = new GameObject();
+            Object.DontDestroyOnLoad(targetPrefab);
+            targetPrefab.SetActive(false);
+            targetPrefab.AddComponent<NetworkIdentity>();
+            PrefabAPI.RegisterNetworkPrefab(targetPrefab);
+            BlazingMissileControllerTweaks.targetPrefab = targetPrefab;
+        }
+
         public override void OnLoad()
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
@@ -31,7 +43,6 @@ namespace TheMysticSword.AspectAbilities
             };
 
             // create blazing missile prefab
-            fireMissile = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/MageFireboltBasic"), "AspectAbilitiesFireMissile");
             fireMissile.GetComponent<ProjectileController>().procCoefficient = 0.25f;
             // we will use a homing missile controller instead of a simple projectile controller
             Object.Destroy(fireMissile.GetComponent<ProjectileSimple>());
@@ -55,14 +66,6 @@ namespace TheMysticSword.AspectAbilities
             fireMissileQuaternionPID.gain = 20f;
             // link the self-destruction timers on both controllers so that the projectile doesn't destroy prematurely from one of the destruction timers being less than the other one
             fireMissile.GetComponent<ProjectileImpactExplosion>().lifetime = fireMissileController.deathTimer;
-
-            GameObject targetPrefab = new GameObject();
-            Object.DontDestroyOnLoad(targetPrefab);
-            targetPrefab.SetActive(false);
-            targetPrefab.AddComponent<NetworkIdentity>();
-            PrefabAPI.RegisterNetworkPrefab(targetPrefab);
-
-            BlazingMissileControllerTweaks.targetPrefab = targetPrefab;
 
             AspectAbilitiesContent.Resources.projectilePrefabs.Add(fireMissile);
 

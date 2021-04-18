@@ -46,6 +46,8 @@ namespace TheMysticSword.AspectAbilities
             LanguageManager.Init();
             StateSeralizerFix.Init();
 
+            AspectAbilities.ContentManagement.ContentLoadHelper.PluginAwakeLoad<BaseAspectAbility>();
+
             // make elites auto-use equipment
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {

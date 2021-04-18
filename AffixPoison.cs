@@ -12,6 +12,13 @@ namespace TheMysticSword.AspectAbilities
         public static GameObject malachiteUrchinOrbitalMaster;
         public static GameObject malachiteUrchinOrbitalBody;
 
+        public override void OnPluginAwake()
+        {
+            // clone the body and the master in case we want to change the stats of the urchins
+            malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster");
+            malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody");
+        }
+
         public override void OnLoad()
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
@@ -22,9 +29,6 @@ namespace TheMysticSword.AspectAbilities
                 LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
             };
 
-            // clone the body and the master in case we want to change the stats of the urchins
-            malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster");
-            malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody");
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();
             malachiteUrchinOrbitalMaster.GetComponent<CharacterMaster>().bodyPrefab = malachiteUrchinOrbitalBody;
 

@@ -18,6 +18,15 @@ namespace TheMysticSword.AspectAbilities
         public static Color colorHauntedBright = new Color(150f / 255f, 220f / 255f, 220f / 255f);
         public static Texture2D remapHealingToHauntedTexture;
 
+        public override void OnPluginAwake()
+        {
+            healPulse = new GameObject("AspectAbilitiesHealPulse");
+            Object.DontDestroyOnLoad(healPulse);
+            healPulse.SetActive(false);
+            healPulse.AddComponent<NetworkIdentity>();
+            PrefabAPI.RegisterNetworkPrefab(healPulse);
+        }
+
         public override void OnLoad()
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
@@ -36,12 +45,7 @@ namespace TheMysticSword.AspectAbilities
             for (int x = 0; x < 53; x++) for (int y = 0; y < 16; y++) remapHealingToHauntedTexture.SetPixel(203 + x, y, new Color(colorHauntedBright.r, colorHauntedBright.g, colorHauntedBright.b, colorHauntedBright.a * (151f / 255f)));
             remapHealingToHauntedTexture.Apply();
 
-            healPulse = new GameObject("AspectAbilitiesHealPulse");
-            Object.DontDestroyOnLoad(healPulse);
-            healPulse.SetActive(false);
-            healPulse.AddComponent<NetworkIdentity>();
             healPulse.AddComponent<HealPulseController>();
-            PrefabAPI.RegisterNetworkPrefab(healPulse);
 
             NetworkingAPI.RegisterMessageType<HealPulseController.SyncFire>();
             NetworkingAPI.RegisterMessageType<HealPulseController.SyncFireFailed>();
