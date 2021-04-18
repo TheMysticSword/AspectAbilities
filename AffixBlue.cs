@@ -6,6 +6,7 @@ using R2API.Networking;
 using R2API.Networking.Interfaces;
 using R2API.Utils;
 using System.Linq;
+using RoR2.CharacterAI;
 
 namespace TheMysticSword.AspectAbilities
 {
@@ -76,14 +77,31 @@ namespace TheMysticSword.AspectAbilities
                 float extraDistance = minDistance - currentDistance;
                 endPosition += extraDistance * direction;
             }
+            
+            bool groundNodesDesired = true; // can't use CharacterBody.isFlying because it considers Grandparents to be flying type
+            bool useIsFlying = true; // but in case we can't get the desired node type, fall back to isFlying
+            CharacterMaster master = self.characterBody.master;
+            if (master)
+            {
+                BaseAI baseAI = master.GetComponent<BaseAI>();
+                if (baseAI)
+                {
+                    groundNodesDesired = baseAI.desiredSpawnNodeGraphType == MapNodeGroup.GraphType.Ground;
+                    useIsFlying = false;
+                }
+            }
+            if (useIsFlying)
+            {
+                groundNodesDesired = !self.characterBody.isFlying;
+            }
 
             // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
-            NodeGraph nodes = self.characterBody.isFlying ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
+            NodeGraph nodes = !groundNodesDesired ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
             NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
             nodes.GetNodePosition(nodeIndex, out endPosition);
 
             // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
-            if (!self.characterBody.isFlying) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
+            if (!groundNodesDesired) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
 
             self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
             return true;
