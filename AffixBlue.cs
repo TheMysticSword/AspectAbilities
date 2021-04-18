@@ -207,10 +207,13 @@ namespace TheMysticSword.AspectAbilities
                 }
                 else
                 {
-                    characterBody.rigidbody.interpolation = RigidbodyInterpolation.None;
+                    if (characterBody.rigidbody) characterBody.rigidbody.interpolation = RigidbodyInterpolation.None;
                     characterBody.transform.SetPositionAndRotation(Vector3.Lerp(startPosition, endPosition, t), Quaternion.identity);
-                    characterBody.rigidbody.position = Vector3.Lerp(startPosition, endPosition, t);
-                    characterBody.rigidbody.rotation = Quaternion.identity;
+                    if (characterBody.rigidbody)
+                    {
+                        characterBody.rigidbody.position = Vector3.Lerp(startPosition, endPosition, t);
+                        characterBody.rigidbody.rotation = Quaternion.identity;
+                    }
                 }
             }
 
