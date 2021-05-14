@@ -16,6 +16,7 @@ using System.Security;
 using System.Security.Permissions;
 using RoR2.ContentManagement;
 using System.Collections;
+using RoR2.Skills;
 
 [module: UnverifiableCode]
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -282,6 +283,7 @@ namespace TheMysticSword.AspectAbilities
                     contentPack.effectDefs.Add(Resources.effectPrefabs.ConvertAll(x => new EffectDef(x)).ToArray());
                     contentPack.entityStateTypes.Add(Resources.entityStateTypes.ToArray());
                     contentPack.networkSoundEventDefs.Add(Resources.networkSoundEventDefs.ToArray());
+                    contentPack.skillDefs.Add(Resources.skillDefs.ToArray());
                 }
             };
             for (int i = 0; i < loadDispatchers.Length; i = num)
@@ -324,6 +326,7 @@ namespace TheMysticSword.AspectAbilities
             public static List<GameObject> effectPrefabs = new List<GameObject>();
             public static List<System.Type> entityStateTypes = new List<System.Type>();
             public static List<NetworkSoundEventDef> networkSoundEventDefs = new List<NetworkSoundEventDef>();
+            public static List<SkillDef> skillDefs = new List<SkillDef>();
         }
     }
 }
