@@ -25,6 +25,7 @@ namespace TheMysticSword.AspectAbilities
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInDependency(JarlykMods.Durability.DurabilityPlugin.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(Starstorm2.Starstorm.guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilitiesPlugin : BaseUnityPlugin
@@ -38,6 +39,8 @@ namespace TheMysticSword.AspectAbilities
         public static BepInEx.Logging.ManualLogSource logger;
 
         public const string TokenPrefix = PluginName + "_";
+
+        public static bool starstorm2Loaded = false;
 
         public void Awake()
         {
@@ -149,6 +152,8 @@ namespace TheMysticSword.AspectAbilities
             {
                 EquipmentDurabilityFix.Init();
             }
+
+            starstorm2Loaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(Starstorm2.Starstorm.guid);
         }
 
         internal static List<BaseAspectAbility> registeredAspectAbilities = new List<BaseAspectAbility>();
@@ -316,6 +321,7 @@ namespace TheMysticSword.AspectAbilities
         {
             public static BuffDef AltLunarShell;
             public static BuffDef IceCrystalDebuff;
+            public static BuffDef StarstormVoidLocked;
         }
 
         public static class Resources

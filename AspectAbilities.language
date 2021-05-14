@@ -6,8 +6,12 @@
     "ASPECTABILITIES_EQUIPMENT_AFFIXPOISON_PICKUP": "Summon ally Malachite Urchins on use.",
     "ASPECTABILITIES_EQUIPMENT_AFFIXHAUNTED_PICKUP": "Heal all allies inside the invisibility aura on use.",
     "ASPECTABILITIES_EQUIPMENT_AFFIXLUNAR_PICKUP": "Gain temporary defense from powerful attacks on use.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXVOID_PICKUP": "Temporarily lock the primary skill of enemies inside the slowing aura on use.",
 
-    "ASPECTABILITIES_ICECRYSTAL_BODY_NAME": "Ice Crystal"
+    "ASPECTABILITIES_ICECRYSTAL_BODY_NAME": "Ice Crystal",
+
+    "ASPECTABILITIES_SKILL_VOIDLOCKED_NAME": "Disarmed",
+    "ASPECTABILITIES_SKILL_VOIDLOCKED_DESCRIPTION": "Cannot use the primary skill."
   },
   "RU": {
     "ASPECTABILITIES_EQUIPMENT_AFFIXRED_PICKUP": "При использовании выпускает самонаводящиеся огненные ракеты.",
@@ -16,7 +20,11 @@
     "ASPECTABILITIES_EQUIPMENT_AFFIXPOISON_PICKUP": "Призывает союзных Малахитовых ежей при использовании.",
     "ASPECTABILITIES_EQUIPMENT_AFFIXHAUNTED_PICKUP": "Восполняет здоровье всех союзников в ауре невидимости при использовании.",
     "ASPECTABILITIES_EQUIPMENT_AFFIXLUNAR_PICKUP": "Даёт временную защиту от сильных атак при использовании.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXVOID_PICKUP": "При использовании временно блокирует основной навык врагов в ауре замедления.",
 
-    "ASPECTABILITIES_ICECRYSTAL_BODY_NAME": "Ледяной кристалл"
+    "ASPECTABILITIES_ICECRYSTAL_BODY_NAME": "Ледяной кристалл",
+
+    "ASPECTABILITIES_SKILL_VOIDLOCKED_NAME": "Разоружение",
+    "ASPECTABILITIES_SKILL_VOIDLOCKED_DESCRIPTION": "Нельзя применить основной навык."
   }
 }
