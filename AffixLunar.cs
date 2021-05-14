@@ -17,7 +17,7 @@ namespace TheMysticSword.AspectAbilities
             {
                 orig();
                 equipmentDef = RoR2Content.Equipment.AffixLunar;
-                equipmentDef.cooldown = 90f;
+                equipmentDef.cooldown = 45f;
                 LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
             };
 
