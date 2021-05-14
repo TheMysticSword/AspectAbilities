@@ -13,6 +13,8 @@
     * Summoned urchins no longer have proc immunity
 * Celestine:
     * Cooldown: ~~15s~~ ⇒ 7s
+* Perfected:
+    * Cooldown: ~~90s~~ ⇒ 45s
 #### 1.4.4:
 * Fixed ground enemies falling through terrain after using the Overloading ability
 #### 1.4.3:

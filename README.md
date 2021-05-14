@@ -42,5 +42,7 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
     * Summoned urchins no longer have proc immunity
 * Celestine:
     * Cooldown: ~~15s~~ ⇒ 7s
+* Perfected:
+    * Cooldown: ~~90s~~ ⇒ 45s
   
 (Previous changelogs can be found [here](https://github.com/TheMysticSword/AspectAbilities/blob/main/CHANGELOG.md))
