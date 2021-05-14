@@ -63,13 +63,19 @@ namespace TheMysticSword.AspectAbilities
         public class MalachiteOrbitalController : NetworkBehaviour
         {
             public CharacterBody characterBody;
-            public int total;
+            public int total
+            {
+                get
+                {
+                    return Mathf.Min(urchins.Count + respawn, totalMax);
+                }
+            }
             public int totalNormal
             {
                 get
                 {
                     int _totalNormal = 1;
-                    if (characterBody) _totalNormal += (int)characterBody.radius;
+                    if (characterBody) _totalNormal += (int)(characterBody.radius / 3);
                     return _totalNormal;
                 }
             }
@@ -109,10 +115,10 @@ namespace TheMysticSword.AspectAbilities
                 {
                     respawnTimer = 0f;
                     respawn--;
-                    total = Mathf.Min(total + 1, totalMax);
+                    int totalAfterSpawningOne = Mathf.Min(total + 1, totalMax);
                     int freeIndex = 0;
                     List<int> freeIndicies = new List<int>();
-                    for (var i = 0; i < total; i++) freeIndicies.Add(i);
+                    for (var i = 0; i < totalAfterSpawningOne; i++) freeIndicies.Add(i);
                     foreach (MalachiteOrbitalUrchin urchin in urchins) freeIndicies.Remove(urchin.index);
                     if (freeIndicies.Count > 0) freeIndex = RoR2Application.rng.NextElementUniform(freeIndicies);
                     else if (urchins.Count > 0)
@@ -122,22 +128,23 @@ namespace TheMysticSword.AspectAbilities
                         MalachiteOrbitalUrchin urchinToKill = urchinsCopy.First();
                         freeIndex = urchinToKill.index;
                         if (urchinToKill.master) urchinToKill.master.TrueKill();
+                        urchins.Remove(urchinToKill);
                     }
                     if (NetworkServer.active)
                     {
                         new MasterSummon
                         {
                             masterPrefab = malachiteUrchinOrbitalMaster,
-                            position = MalachiteOrbitalUrchin.FindSuitablePosition(total, freeIndex, rotation, characterBody.corePosition, height, radius),
-                            rotation = Quaternion.LookRotation(MalachiteOrbitalUrchin.FindSuitableAngle(total, freeIndex, rotation)),
+                            position = MalachiteOrbitalUrchin.FindSuitablePosition(totalAfterSpawningOne, freeIndex, rotation, characterBody.corePosition, height, radius),
+                            rotation = Quaternion.LookRotation(MalachiteOrbitalUrchin.FindSuitableAngle(totalAfterSpawningOne, freeIndex, rotation)),
                             summonerBodyObject = characterBody.gameObject,
                             ignoreTeamMemberLimit = true,
                             preSpawnSetupCallback = (urchinMaster) =>
                             {
-                                Debug.Log(transform.position);
                                 if (NetworkServer.active)
                                 {
                                     MalachiteOrbitalUrchin component = urchinMaster.GetComponent<MalachiteOrbitalUrchin>();
+                                    component.index = freeIndex;
                                     urchins.Add(component);
                                     component.ownerController = this;
                                     component.spawnTime = Run.FixedTimeStamp.now.t;
@@ -160,7 +167,11 @@ namespace TheMysticSword.AspectAbilities
             {
                 foreach (MalachiteOrbitalUrchin urchin in urchins)
                 {
-                    if (urchin.master) urchin.master.TrueKill();
+                    if (urchin.master)
+                    {
+                        urchin.master.TrueKill();
+                        Object.Destroy(urchin);
+                    }
                 }
             }
         }
@@ -260,6 +271,7 @@ namespace TheMysticSword.AspectAbilities
 
             public void FixedUpdate()
             {
+                if (!ownerController) return;
                 if (!body && master.hasBody)
                 {
                     body = master.GetBody();
@@ -272,22 +284,13 @@ namespace TheMysticSword.AspectAbilities
 
             public static Vector3 FindSuitableAngle(int total, int index, float rotation)
             {
-                if (total <= 1) return Vector3.zero;
-                float angle = ((360f / (float)total * (float)index) + rotation) * Mathf.Deg2Rad;
+                float angle = ((360f / (float)Mathf.Max(total, 1) * (float)index) + rotation) * Mathf.Deg2Rad;
                 return new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
             }
             public static Vector3 FindSuitablePosition(int total, int index, float rotation, Vector3 corePosition, float height, float radius)
             {
-                Vector3 vectorAngle = FindSuitableAngle(total, index, rotation);
+                Vector3 vectorAngle = total > 1 ? FindSuitableAngle(total, index, rotation) : Vector3.zero;
                 return corePosition + Vector3.up * height + vectorAngle * radius * 3f;
-            }
-
-            public void OnDestroy()
-            {
-                if (ownerController)
-                {
-                    ownerController.total = Mathf.Max(ownerController.total - 1, 0);
-                }
             }
         }
     }
