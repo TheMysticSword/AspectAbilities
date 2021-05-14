@@ -376,12 +376,6 @@ namespace TheMysticSword.AspectAbilities
                             Util.PlaySound("Play_mage_m2_iceSpear_impact", crystal);
                             crystal.transform.up = impactInfo.estimatedImpactNormal;
                             crystal.GetComponent<TeamComponent>().teamIndex = teamIndex;
-                            AspectAbilitiesPlugin.AspectAbilitiesBodyFields bodyFields = crystal.GetComponent<AspectAbilitiesPlugin.AspectAbilitiesBodyFields>();
-                            if (bodyFields)
-                            {
-                                bodyFields.multiplierOnHitProcsOnSelf -= 1f;
-                                bodyFields.multiplierOnDeathProcsOnSelf -= 1f;
-                            }
                         }
                         Object.Destroy(gameObject);
                     }
