@@ -143,62 +143,6 @@ namespace TheMysticSword.AspectAbilities
                 return orig(self, equipmentDef2);
             };
 
-            IL.RoR2.HealthComponent.TakeDamage += (il) =>
-            {
-                ILCursor c = new ILCursor(il);
-                if (c.TryGotoNext(
-                    MoveType.AfterLabel,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchLdfld<HealthComponent>("onIncomingDamageReceivers"),
-                    x => x.MatchStloc(13)
-                ))
-                {
-                    c.Emit(OpCodes.Ldarg_0);
-                    c.Emit(OpCodes.Ldarg_1);
-                    c.EmitDelegate<System.Action<HealthComponent, DamageInfo>>((self, damageInfo) =>
-                    {
-                        AspectAbilitiesBodyFields bodyFields = self.body.gameObject.GetComponent<AspectAbilitiesBodyFields>();
-                        if (bodyFields)
-                        {
-                            damageInfo.procCoefficient *= Mathf.Max(bodyFields.multiplierOnHitProcsOnSelf, 0f);
-                        }
-                    });
-                }
-            };
-            IL.RoR2.GlobalEventManager.OnCharacterDeath += (il) =>
-            {
-                ILCursor c = new ILCursor(il);
-                ILLabel label = null;
-                if (c.TryGotoNext(
-                    MoveType.Before,
-                    x => x.MatchLdloc(13),
-                    x => x.MatchLdarg(1),
-                    x => x.MatchCallvirt<CharacterBody>("HandleOnKillEffectsServer")
-                ) && c.TryGotoPrev(
-                    MoveType.After,
-                    x => x.MatchLdloc(13),
-                    x => x.MatchCallOrCallvirt<Object>("op_Implicit"),
-                    x => x.MatchBrfalse(out label)
-                ))
-                {
-                    c.Emit(OpCodes.Ldloc_2);
-                    c.Emit(OpCodes.Ldloc, 13);
-                    c.EmitDelegate<System.Func<CharacterBody, CharacterBody, bool>>((victimBody, attackerBody) =>
-                    {
-                        if (victimBody && attackerBody && attackerBody.master)
-                        {
-                            AspectAbilitiesBodyFields bodyFields = victimBody.gameObject.GetComponent<AspectAbilitiesBodyFields>();
-                            if (bodyFields && !Util.CheckRoll(100f * Mathf.Max(bodyFields.multiplierOnDeathProcsOnSelf, 0f), attackerBody.master))
-                            {
-                                return false;
-                            }
-                        }
-                        return true;
-                    });
-                    c.Emit(OpCodes.Brfalse, label);
-                }
-            };
-
             // make Jarlyk's EquipmentDurability not affect enemies
             if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(JarlykMods.Durability.DurabilityPlugin.PluginGuid))
             {
@@ -235,8 +179,6 @@ namespace TheMysticSword.AspectAbilities
             public float aiUseDelay = 1f;
             public float aiUseDelayMax = 1f;
             public bool aiCanUse = false;
-            public float multiplierOnHitProcsOnSelf = 1f;
-            public float multiplierOnDeathProcsOnSelf = 1f;
 
             public void FixedUpdate()
             {
