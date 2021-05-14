@@ -27,6 +27,9 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.4.6:
+* Fixed Malachite Urchins not despawning if Malachite aspect is used again while Urchins are alive
+* Fixed wrong max Malachite Urchin calculations that are based on enemy size, causing Golems, Beetle Guards etc. to have 3 Urchins instead of one. Now all enemies have 1 Urchin slot with the exception of extremely big ones such as the Wandering Vagrant and the Solus Control Unit
 #### 1.4.5:
 * Blazing:
     * Damage: ~~12x200%~~ ⇒ 12x300%
