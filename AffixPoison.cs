@@ -4,6 +4,8 @@ using RoR2;
 using R2API;
 using System.Collections.Generic;
 using System.Linq;
+using R2API.Networking.Interfaces;
+using R2API.Networking;
 
 namespace TheMysticSword.AspectAbilities
 {
@@ -17,6 +19,9 @@ namespace TheMysticSword.AspectAbilities
             // clone the body and the master in case we want to change the stats of the urchins
             malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster");
             malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody");
+
+            NetworkingAPI.RegisterMessageType<MalachiteOrbitalUrchin.SyncInit>();
+            NetworkingAPI.RegisterMessageType<MalachiteOrbitalUrchin.RequestSyncInit>();
         }
 
         public override void OnLoad()
@@ -30,7 +35,13 @@ namespace TheMysticSword.AspectAbilities
             };
 
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();
+            float statBoost = 3f;
+            body.baseMaxHealth *= statBoost;
+            body.levelMaxHealth *= statBoost;
+            body.baseDamage *= statBoost;
+            body.levelDamage *= statBoost;
             malachiteUrchinOrbitalMaster.GetComponent<CharacterMaster>().bodyPrefab = malachiteUrchinOrbitalBody;
+            malachiteUrchinOrbitalMaster.AddComponent<MalachiteOrbitalUrchin>();
 
             AspectAbilitiesContent.Resources.bodyPrefabs.Add(malachiteUrchinOrbitalBody);
             AspectAbilitiesContent.Resources.masterPrefabs.Add(malachiteUrchinOrbitalMaster);
@@ -52,13 +63,12 @@ namespace TheMysticSword.AspectAbilities
         public class MalachiteOrbitalController : NetworkBehaviour
         {
             public CharacterBody characterBody;
-            public List<UrchinHolder> urchins = new List<UrchinHolder>();
             public int total;
             public int totalNormal
             {
                 get
                 {
-                    int _totalNormal = 3;
+                    int _totalNormal = 1;
                     if (characterBody) _totalNormal += (int)characterBody.radius;
                     return _totalNormal;
                 }
@@ -67,7 +77,7 @@ namespace TheMysticSword.AspectAbilities
             {
                 get
                 {
-                    return totalNormal * 3;
+                    return totalNormal;
                 }
             }
             public int respawn = 0;
@@ -83,119 +93,54 @@ namespace TheMysticSword.AspectAbilities
             public float rotation = 0f;
             public float rotationSpeed = 9f;
             public float height = 6f;
+            public List<MalachiteOrbitalUrchin> urchins;
             
             public void Awake()
             {
                 characterBody = GetComponent<CharacterBody>();
-            }
-
-            public struct UrchinHolder
-            {
-                public UrchinHolder(int index)
-                {
-                    this.index = index;
-                    this.body = null;
-                    this.spawnTime = Run.instance.time;
-                    this.dampVelocity = Vector3.zero;
-                    this.spawnedOnce = false;
-                }
-                public int index;
-                public CharacterBody body;
-                public bool spawnedOnce;
-                public float spawnTime;
-                public bool alive
-                {
-                    get
-                    {
-                        return body && body.healthComponent && body.healthComponent.alive;
-                    }
-                }
-                public Vector3 dampVelocity;
-            }
-
-            private void RefreshSlots()
-            {
-                foreach (UrchinHolder urchin in urchins)
-                {
-                    if (urchin.index >= total && urchin.alive) urchin.body.healthComponent.Suicide();
-                }
-                urchins.RemoveAll(x => !x.alive && x.spawnedOnce);
-            }
-
-            private Vector3 FindSuitableAngle(int index)
-            {
-                float angle = ((360f / (float)total * (float)index) + rotation) * Mathf.Deg2Rad;
-                return new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
-            }
-            private Vector3 FindSuitablePosition(int index)
-            {
-                Vector3 vectorAngle = FindSuitableAngle(index);
-                return characterBody.corePosition + Vector3.up * height + vectorAngle * radius * 3f;
+                urchins = new List<MalachiteOrbitalUrchin>();
             }
 
             public void FixedUpdate()
             {
+                urchins.RemoveAll(x => !x); // remove destroyed urchins from the list
                 respawnTimer += Time.fixedDeltaTime;
                 if (respawnTimer >= respawnTimerMax && respawn > 0)
                 {
                     respawnTimer = 0f;
                     respawn--;
-                    total = Mathf.Clamp(total + 1, 0, totalMax);
-                    // create a list of index statuses - we will use it to find a free slot for a new urchin
-                    RefreshSlots();
-                    List<bool> indexStatus = Enumerable.Repeat(false, total).ToList();
-                    foreach (UrchinHolder urchin in urchins)
-                    {
-                        if (urchin.alive || !urchin.spawnedOnce)
-                        {
-                            indexStatus[urchin.index] = true;
-                        }
-                    }
-                    // let's find a free slot!
+                    total = Mathf.Min(total + 1, totalMax);
                     int freeIndex = 0;
-                    foreach (bool indexOccupied in indexStatus)
+                    List<int> freeIndicies = new List<int>();
+                    for (var i = 0; i < total; i++) freeIndicies.Add(i);
+                    foreach (MalachiteOrbitalUrchin urchin in urchins) freeIndicies.Remove(urchin.index);
+                    if (freeIndicies.Count > 0) freeIndex = RoR2Application.rng.NextElementUniform(freeIndicies);
+                    else if (urchins.Count > 0)
                     {
-                        if (indexOccupied) freeIndex++;
-                        else break;
+                        List<MalachiteOrbitalUrchin> urchinsCopy = urchins.ToList();
+                        urchinsCopy.Sort((x, y) => x.spawnTime > y.spawnTime ? 1 : -1);
+                        MalachiteOrbitalUrchin urchinToKill = urchinsCopy.First();
+                        freeIndex = urchinToKill.index;
+                        if (urchinToKill.master) urchinToKill.master.TrueKill();
                     }
-                    // if the free slot index exceeds the total amount of slots, kill the oldest urchin and put the new one in its slot
-                    if (freeIndex >= total)
-                    {
-                        UrchinHolder oldest = urchins.Aggregate((current, next) => next.spawnTime < current.spawnTime ? next : current);
-                        if (oldest.body && oldest.body.healthComponent)
-                        {
-                            oldest.body.healthComponent.Suicide();
-                            RefreshSlots();
-                        }
-                        freeIndex = oldest.index;
-                    }
-                    // spawn the urchin facing outward of the circle
                     if (NetworkServer.active)
                     {
                         new MasterSummon
                         {
                             masterPrefab = malachiteUrchinOrbitalMaster,
-                            position = FindSuitablePosition(freeIndex),
-                            rotation = Quaternion.LookRotation(FindSuitableAngle(freeIndex)),
+                            position = MalachiteOrbitalUrchin.FindSuitablePosition(total, freeIndex, rotation, characterBody.corePosition, height, radius),
+                            rotation = Quaternion.LookRotation(MalachiteOrbitalUrchin.FindSuitableAngle(total, freeIndex, rotation)),
                             summonerBodyObject = characterBody.gameObject,
                             ignoreTeamMemberLimit = true,
                             preSpawnSetupCallback = (urchinMaster) =>
                             {
+                                Debug.Log(transform.position);
                                 if (NetworkServer.active)
                                 {
-                                    urchins.Add(new UrchinHolder(freeIndex));
-                                    int freeIndexCached = freeIndex;
-                                    // can't do urchinMaster.GetBody() because the body doesn't exist yet
-                                    urchinMaster.onBodyStart += (urchinBody) =>
-                                    {
-                                        UrchinHolderOnSpawn(freeIndexCached, urchinBody);
-                                        AspectAbilitiesPlugin.AspectAbilitiesBodyFields bodyFields = urchinBody.GetComponent<AspectAbilitiesPlugin.AspectAbilitiesBodyFields>();
-                                        if (bodyFields)
-                                        {
-                                            bodyFields.multiplierOnHitProcsOnSelf -= 1f;
-                                            bodyFields.multiplierOnDeathProcsOnSelf -= 1f;
-                                        }
-                                    };
+                                    MalachiteOrbitalUrchin component = urchinMaster.GetComponent<MalachiteOrbitalUrchin>();
+                                    urchins.Add(component);
+                                    component.ownerController = this;
+                                    component.spawnTime = Run.FixedTimeStamp.now.t;
                                     Inventory inventory = urchinMaster.inventory;
                                     inventory.ResetItem(RoR2Content.Items.HealthDecay);
                                     inventory.CopyItemsFrom(characterBody.inventory);
@@ -209,50 +154,139 @@ namespace TheMysticSword.AspectAbilities
                 }
 
                 rotation += rotationSpeed * Time.fixedDeltaTime;
-                if (characterBody && characterBody.healthComponent && characterBody.healthComponent.alive)
-                {
-                    for (int i = 0; i < urchins.Count; i++)
-                    {
-                        UrchinHolder urchin = urchins[i];
-                        if (urchin.alive)
-                        {
-                            urchin.body.transform.position = Vector3.SmoothDamp(urchin.body.transform.position, FindSuitablePosition(urchin.index), ref urchin.dampVelocity, 0.05f);
-                        }
-                    }
-                    total = urchins.Count;
-                }
-                else
-                {
-                    if (NetworkServer.active)
-                    {
-                        Destroy(this);
-                    }
-                }
-            }
-
-            public void UrchinHolderOnSpawn(int index, CharacterBody body)
-            {
-                int listIndex = urchins.FindIndex(x => x.index == index);
-                if (listIndex != -1)
-                {
-                    UrchinHolder newUrchin = new UrchinHolder(index);
-                    newUrchin.body = body;
-                    newUrchin.spawnedOnce = true;
-                    urchins[listIndex] = newUrchin;
-                }
             }
 
             public void OnDestroy()
             {
-                if (NetworkServer.active)
+                foreach (MalachiteOrbitalUrchin urchin in urchins)
                 {
-                    foreach (UrchinHolder urchin in urchins)
+                    if (urchin.master) urchin.master.TrueKill();
+                }
+            }
+        }
+
+        public class MalachiteOrbitalUrchin : MonoBehaviour
+        {
+            public int index = 0;
+            public MalachiteOrbitalController ownerController;
+            public CharacterBody body;
+            public CharacterMaster master;
+            public Vector3 dampVelocity;
+            public float spawnTime;
+            public bool networkInit = false;
+
+            public void Awake()
+            {
+                master = GetComponent<CharacterMaster>();
+                if (!NetworkServer.active && !networkInit) new RequestSyncInit
+                {
+                    objID = gameObject.GetComponent<NetworkIdentity>().netId,
+                    index = index,
+                    ownerObjID = ownerController ? ownerController.gameObject.GetComponent<NetworkIdentity>().netId : NetworkInstanceId.Invalid
+                }.Send(NetworkDestination.Server);
+            }
+
+            public class SyncInit : INetMessage
+            {
+                public NetworkInstanceId objID;
+                public int index;
+                public NetworkInstanceId ownerObjID;
+
+                public void Deserialize(NetworkReader reader)
+                {
+                    objID = reader.ReadNetworkId();
+                    index = reader.ReadInt32();
+                    ownerObjID = reader.ReadNetworkId();
+                }
+
+                public void OnReceived()
+                {
+                    if (NetworkServer.active) return;
+                    GameObject obj = Util.FindNetworkObject(objID);
+                    if (obj)
                     {
-                        if (urchin.alive)
-                        {
-                            urchin.body.healthComponent.Suicide();
-                        }
+                        MalachiteOrbitalUrchin component = obj.GetComponent<MalachiteOrbitalUrchin>();
+                        component.index = index;
+                        GameObject ownerObj = Util.FindNetworkObject(ownerObjID);
+                        if (ownerObj) component.ownerController = ownerObj.GetComponent<MalachiteOrbitalController>();
+                        component.networkInit = true;
                     }
+                }
+
+                public void Serialize(NetworkWriter writer)
+                {
+                    writer.Write(objID);
+                    writer.Write(index);
+                    writer.Write(ownerObjID);
+                }
+            }
+
+            public class RequestSyncInit : INetMessage
+            {
+                public NetworkInstanceId objID;
+                public int index;
+                public NetworkInstanceId ownerObjID;
+
+                public void Deserialize(NetworkReader reader)
+                {
+                    objID = reader.ReadNetworkId();
+                    index = reader.ReadInt32();
+                    ownerObjID = reader.ReadNetworkId();
+                }
+
+                public void OnReceived()
+                {
+                    if (!NetworkServer.active) return;
+                    GameObject obj = Util.FindNetworkObject(objID);
+                    if (obj)
+                    {
+                        MalachiteOrbitalUrchin component = obj.GetComponent<MalachiteOrbitalUrchin>();
+                        new SyncInit
+                        {
+                            objID = objID,
+                            index = component.index,
+                            ownerObjID = component.ownerController ? component.ownerController.gameObject.GetComponent<NetworkIdentity>().netId : NetworkInstanceId.Invalid
+                        }.Send(NetworkDestination.Clients);
+                    }
+                }
+
+                public void Serialize(NetworkWriter writer)
+                {
+                    writer.Write(objID);
+                    writer.Write(index);
+                    writer.Write(ownerObjID);
+                }
+            }
+
+            public void FixedUpdate()
+            {
+                if (!body && master.hasBody)
+                {
+                    body = master.GetBody();
+                }
+                if (body)
+                {
+                    body.transform.position = Vector3.SmoothDamp(body.transform.position, FindSuitablePosition(ownerController.total, index, ownerController.rotation, ownerController.characterBody.corePosition, ownerController.height, ownerController.radius), ref dampVelocity, 0.05f);
+                }
+            }
+
+            public static Vector3 FindSuitableAngle(int total, int index, float rotation)
+            {
+                if (total <= 1) return Vector3.zero;
+                float angle = ((360f / (float)total * (float)index) + rotation) * Mathf.Deg2Rad;
+                return new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
+            }
+            public static Vector3 FindSuitablePosition(int total, int index, float rotation, Vector3 corePosition, float height, float radius)
+            {
+                Vector3 vectorAngle = FindSuitableAngle(total, index, rotation);
+                return corePosition + Vector3.up * height + vectorAngle * radius * 3f;
+            }
+
+            public void OnDestroy()
+            {
+                if (ownerController)
+                {
+                    ownerController.total = Mathf.Max(ownerController.total - 1, 0);
                 }
             }
         }
