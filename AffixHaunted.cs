@@ -33,7 +33,7 @@ namespace TheMysticSword.AspectAbilities
             {
                 orig();
                 equipmentDef = RoR2Content.Equipment.AffixHaunted;
-                equipmentDef.cooldown = 15f;
+                equipmentDef.cooldown = 7f;
                 LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
             };
 
