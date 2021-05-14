@@ -14,15 +14,15 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 ![](https://i.imgur.com/jIFvoX4.png)
 
 ---
-###### Malachite - summon Malachite Urchins that follow you and inherit your items (90s)
+###### Malachite - summon a Malachite Urchin that follows you and inherits your items (90s)
 ![](https://i.imgur.com/47oI6JS.png)
 
 ---
-###### Celestine - heal all allies inside the invisibility aura (15s)
+###### Celestine - heal all allies inside the invisibility aura (7s)
 ![](https://i.imgur.com/3EbrAMr.png)
 
 ---
-###### Perfected - temporarily encase yourself in Lunar Shell, preventing enemy attacks from dealing more than 10% of your maximum health as damage in a single hit (90s)
+###### Perfected - temporarily encase yourself in Lunar Shell, preventing enemy attacks from dealing more than 10% of your maximum health as damage in a single hit (45s)
 ![](https://i.imgur.com/vh9Jp8K.png)
 
 ---
