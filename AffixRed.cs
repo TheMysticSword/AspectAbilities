@@ -11,14 +11,8 @@ namespace TheMysticSword.AspectAbilities
     public class AffixRed : BaseAspectAbility
     {
         public static GameObject fireMissile;
-        /*
-         * this shouldn't be weaker than disposable missile launcher
-         * dml launches 12 missiles * 300% = 3600% damage
-         * divide the total damage by dml's 45 second cooldown = 80%
-         * multiply it by 15s (this aspect's cooldown) = 1200%
-         */
-        public static float totalMissileDamage = 24f;
-        public static int totalMissilesPerUse = 6;
+        public static float missileDamage = 3f;
+        public static int missilesPerUse = 12;
 
         public override void OnPluginAwake()
         {
@@ -78,7 +72,7 @@ namespace TheMysticSword.AspectAbilities
 
         public override bool OnUse(EquipmentSlot self)
         {
-            self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += totalMissilesPerUse;
+            self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += missilesPerUse;
             return true;
         }
 
@@ -86,7 +80,7 @@ namespace TheMysticSword.AspectAbilities
         {
             public int ammo = 0;
             public float timer = 0f;
-            public float timerMax = 0.25f;
+            public float timerMax = 0.1f;
             public CharacterBody characterBody;
             public BullseyeSearch targetFinder;
             public HurtBox currentTarget;
@@ -129,7 +123,7 @@ namespace TheMysticSword.AspectAbilities
                             Util.PlaySound("Stop_item_proc_missile_fly_loop", characterBody.gameObject);
                             if (NetworkServer.active)
                             {
-                                float damage = characterBody.damage * (totalMissileDamage / (float)totalMissilesPerUse);
+                                float damage = characterBody.damage * missileDamage;
                                 // make the damage equal for elite enemies and players
                                 if (!characterBody.isPlayerControlled && characterBody.equipmentSlot.equipmentIndex == RoR2Content.Equipment.AffixRed.equipmentIndex)
                                 {
