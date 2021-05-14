@@ -59,8 +59,8 @@ namespace TheMysticSword.AspectAbilities
             body.baseNameToken = "ASPECTABILITIES_ICECRYSTAL_BODY_NAME";
             body.portraitIcon = Resources.Load<Texture>("Textures/MiscIcons/texMysteryIcon");
             body.bodyFlags = iceCrystal.GetComponent<CharacterBody>().bodyFlags | CharacterBody.BodyFlags.ImmuneToExecutes | CharacterBody.BodyFlags.HasBackstabImmunity;
-            body.baseMaxHealth = 80f;
-            body.levelMaxHealth = 24f;
+            body.baseMaxHealth = 110f;
+            body.levelMaxHealth = 33f;
             // replace the pink time crystal material with an ice material
             CharacterModel.RendererInfo[] rendererInfos = model.baseRendererInfos;
             for (int i = 0; i < rendererInfos.Length; i++)
