@@ -45,7 +45,7 @@ namespace TheMysticSword.AspectAbilities
             fireMissileController.maxVelocity = 10f;
             fireMissileController.rollVelocity = 0f;
             fireMissileController.acceleration = 25f;
-            fireMissileController.delayTimer = 0.4f;
+            fireMissileController.delayTimer = 0.7f;
             fireMissileController.giveupTimer = fireMissileController.delayTimer + 1f;
             fireMissileController.deathTimer = 16f;
             fireMissileController.turbulence = 0f;
