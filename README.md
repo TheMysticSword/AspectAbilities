@@ -1,4 +1,4 @@
-# Aspect Abilities
+﻿# Aspect Abilities
 Adds on-use effects to elite aspects. Enemies can use them starting from stage 11 on Drizzle, stage 6 on Rainstorm and stage 1 on Monsoon.
 
 ---
@@ -27,6 +27,12 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
+#### 1.4.8:
+* Blazing:
+	* Homing Delay: ~~0.4s~~ ⇒ 0.7s
+* Glacial:
+	* Growth Time: ~~4s~~ ⇒ 6s
+* Reuploaded the mod because the previous patch didn't have any effect
 #### 1.4.7:
 * Fixed a bug that caused console errors whenever someone used an equipment, which also prevented Glacial elites from using their ability
   

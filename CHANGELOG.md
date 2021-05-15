@@ -1,4 +1,10 @@
-﻿#### 1.4.7:
+﻿#### 1.4.8:
+* Blazing:
+	* Homing Delay: ~~0.4s~~ ⇒ 0.7s
+* Glacial:
+	* Growth Time: ~~4s~~ ⇒ 6s
+* Reuploaded the mod because the previous patch didn't have any effect
+#### 1.4.7:
 * Fixed a bug that caused console errors whenever someone used an equipment, which also prevented Glacial elites from using their ability
 #### 1.4.6:
 * Fixed Malachite Urchins not despawning if Malachite aspect is used again while Urchins are alive
