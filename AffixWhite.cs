@@ -26,7 +26,7 @@ namespace TheMysticSword.AspectAbilities
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
 
         public static float defaultRadius = 60f;
-        public static float defaultGrowTime = 4f;
+        public static float defaultGrowTime = 6f;
         public static float flyTime = 2f;
         public static int maxCrystals = 3;
 
