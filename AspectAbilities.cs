@@ -163,7 +163,7 @@ namespace TheMysticSword.AspectAbilities
         }
         public static BaseAspectAbility FindAspectAbility(EquipmentIndex equipmentIndex)
         {
-            return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef.equipmentIndex == equipmentIndex);
+            return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef ? x.equipmentDef.equipmentIndex == equipmentIndex : false);
         }
 
         internal static BaseAI.Target GetAITarget(CharacterMaster characterMaster)
