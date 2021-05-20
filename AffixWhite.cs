@@ -9,7 +9,6 @@ using R2API.Networking.Interfaces;
 using R2API.Utils;
 using System.Linq;
 using System.Collections.Generic;
-using HG;
 
 namespace TheMysticSword.AspectAbilities
 {
@@ -21,14 +20,14 @@ namespace TheMysticSword.AspectAbilities
         public static SpawnCard iceCrystalSpawnCard;
         public static GameObject iceCrystalExplosionEffect;
         public static Color iceCrystalColor = new Color(209f / 255f, 236f / 255f, 236f / 255f);
-        public static float cursePenaltyStackFrequency = 0.2f;
-        public static float cursePenaltyPerStack = (15f / 100f) * cursePenaltyStackFrequency; // 15% health reduction per second
         private static List<CharacterBody> iceCrystalInstances = new List<CharacterBody>();
-
-        public static float defaultRadius = 60f;
-        public static float defaultGrowTime = 6f;
+        
         public static float flyTime = 2f;
         public static int maxCrystals = 3;
+
+        public static GameObject iceShockwave;
+        public static AnimationCurve iceShockwaveCurve;
+        public static float iceShockwaveDuration = 0.5f;
 
         public override void OnPluginAwake()
         {
@@ -76,16 +75,7 @@ namespace TheMysticSword.AspectAbilities
             Object.Destroy(modelBaseTransform.Find("Mesh").Find("Beam").gameObject);
             Object.Destroy(modelBaseTransform.Find("Swirls").gameObject);
             Object.Destroy(modelBaseTransform.Find("WarningRadius").gameObject);
-            // we will attach the ice relic snowstorm aura effect to this
-            GameObject icicleAura = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/NetworkedObjects/IcicleAura"), "AspectAbilitiesIceCrystalIcicleAura", false);
-            Object.Destroy(icicleAura.GetComponent<IcicleAuraController>());
-            Object.Destroy(icicleAura.GetComponent<BuffWard>());
-            Object.Destroy(icicleAura.GetComponent<TeamFilter>());
-            Object.Destroy(icicleAura.GetComponent<NetworkIdentity>());
-            icicleAura.name = "VisualAura";
-            icicleAura.transform.SetParent(iceCrystal.transform);
-            icicleAura.transform.localPosition = Vector3.zero;
-            iceCrystal.AddComponent<GlacialWardController>();
+            GlacialWardController glacialWardController = iceCrystal.AddComponent<GlacialWardController>();
             iceCrystal.GetComponent<CharacterDeathBehavior>().deathState = new EntityStates.SerializableEntityStateType(typeof(GlacialWardDeath));
 
             // we need a spawncard in order to properly spawn this object (looks like some components don't get initialized unless you spawn the prefab through a spawncard)
@@ -100,7 +90,7 @@ namespace TheMysticSword.AspectAbilities
             iceCrystalSpawnCard.prefab = iceCrystal;
 
             iceCrystalExplosionEffect = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Effects/TimeCrystalDeath"), "AspectAbilitiesIceCrystalDeath", false);
-            iceCrystalExplosionEffect.GetComponent<EffectComponent>().soundName = "Play_item_proc_iceRingSpear";
+            iceCrystalExplosionEffect.GetComponent<EffectComponent>().soundName = "Play_mage_shift_wall_explode";
             Object.Destroy(iceCrystalExplosionEffect.GetComponent<ShakeEmitter>());
             iceCrystalExplosionEffect.transform.Find("Particles").Find("LongLifeNoiseTrails").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
             iceCrystalExplosionEffect.transform.Find("Particles").Find("Dash, Bright").gameObject.GetComponent<ParticleSystemRenderer>().material = Resources.Load<Material>("Materials/matIsFrozen");
@@ -122,8 +112,94 @@ namespace TheMysticSword.AspectAbilities
 
             projectileController.ghostPrefab = iceCrystalProjectileGhost;
 
+            // set up ice shockwave
+            iceShockwave = PrefabAPI.InstantiateClone(new GameObject("iceshockwave"), AspectAbilitiesPlugin.TokenPrefix + "IceShockwave", false);
+
+            iceShockwaveCurve = new AnimationCurve
+            {
+                keys = new Keyframe[]
+                {
+                    new Keyframe(0f, 0f),
+                    new Keyframe(1f, 1f)
+                },
+                preWrapMode = WrapMode.Clamp,
+                postWrapMode = WrapMode.Clamp
+            };
+            for (var i = 0; i < iceShockwaveCurve.keys.Length; i++) iceShockwaveCurve.SmoothTangents(i, 0f);
+
+            iceShockwave.AddComponent<DestroyOnTimer>().duration = iceShockwaveDuration;
+
+            EffectComponent effectComponent = iceShockwave.AddComponent<EffectComponent>();
+            effectComponent.applyScale = true;
+            effectComponent.soundName = "Play_item_proc_iceRingSpear";
+            VFXAttributes vfxAttributes = iceShockwave.AddComponent<VFXAttributes>();
+            vfxAttributes.vfxIntensity = VFXAttributes.VFXIntensity.High;
+            vfxAttributes.vfxPriority = VFXAttributes.VFXPriority.Always;
+
+            GameObject icicleAura = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/NetworkedObjects/IcicleAura"), "AspectAbilitiesIceCrystalIcicleAura", false);
+            Object.Destroy(icicleAura.GetComponent<IcicleAuraController>());
+            Object.Destroy(icicleAura.GetComponent<BuffWard>());
+            Object.Destroy(icicleAura.GetComponent<TeamFilter>());
+            Object.Destroy(icicleAura.GetComponent<NetworkIdentity>());
+            icicleAura.name = "VisualAura";
+            icicleAura.transform.SetParent(iceShockwave.transform);
+            icicleAura.transform.localPosition = Vector3.zero;
+            icicleAura.transform.localScale = Vector3.one;
+
+            ObjectScaleCurve objectScaleCurve = icicleAura.AddComponent<ObjectScaleCurve>();
+            objectScaleCurve.overallCurve = iceShockwaveCurve;
+            objectScaleCurve.useOverallCurveOnly = true;
+            objectScaleCurve.timeMax = iceShockwaveDuration;
+
+            List<ParticleSystem> particleSystems = new List<ParticleSystem>();
+            Transform particles = icicleAura.transform.Find("Particles");
+            particleSystems.Add(particles.Find("Chunks").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Ring, Core").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Ring, Outer").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Ring, Procced").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("SpinningSharpChunks").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Area").gameObject.GetComponent<ParticleSystem>());
+            foreach (ParticleSystem particleSystem in particleSystems)
+            {
+                ParticleSystem.MainModule main = particleSystem.main;
+                main.loop = true;
+                main.playOnAwake = true;
+            }
+
+            // put an icicle aura on the crystal too
+            icicleAura = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/NetworkedObjects/IcicleAura"), "AspectAbilitiesIceCrystalIcicleAura2", false);
+            Object.Destroy(icicleAura.GetComponent<IcicleAuraController>());
+            Object.Destroy(icicleAura.GetComponent<BuffWard>());
+            Object.Destroy(icicleAura.GetComponent<TeamFilter>());
+            Object.Destroy(icicleAura.GetComponent<NetworkIdentity>());
+            icicleAura.name = "VisualAura";
+            icicleAura.transform.SetParent(iceCrystal.transform);
+            icicleAura.transform.localPosition = Vector3.zero;
+            icicleAura.transform.localScale = Vector3.one;
+
+            particleSystems.Clear();
+            particles = icicleAura.transform.Find("Particles");
+            particleSystems.Add(particles.Find("Chunks").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Ring, Core").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Ring, Outer").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Ring, Procced").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("SpinningSharpChunks").gameObject.GetComponent<ParticleSystem>());
+            particleSystems.Add(particles.Find("Area").gameObject.GetComponent<ParticleSystem>());
+            foreach (ParticleSystem particleSystem in particleSystems)
+            {
+                ParticleSystem.MainModule main = particleSystem.main;
+                main.loop = true;
+                main.playOnAwake = true;
+            }
+
+            glacialWardController.icicleAura = icicleAura;
+            Object.Destroy(particles.Find("Chunks").gameObject);
+            Object.Destroy(particles.Find("Ring, Core").gameObject);
+            Object.Destroy(particles.Find("Ring, Procced").gameObject);
+
             AspectAbilitiesContent.Resources.bodyPrefabs.Add(iceCrystal);
             AspectAbilitiesContent.Resources.effectPrefabs.Add(iceCrystalExplosionEffect);
+            AspectAbilitiesContent.Resources.effectPrefabs.Add(iceShockwave);
             AspectAbilitiesContent.Resources.projectilePrefabs.Add(iceCrystalProjectile);
         }
 
@@ -184,39 +260,34 @@ namespace TheMysticSword.AspectAbilities
         public class GlacialWardController : MonoBehaviour
         {
             public CharacterBody characterBody;
-            public GameObject visualAura;
             public ParticleSystem[] particleSystems;
-            public float radius = 0f;
-            public float maxRadius = defaultRadius;
-            public float growTime = defaultGrowTime;
-            public float growVelocity = 0f;
+            public bool effectOnDeath = true;
+            public float stopwatch = 0f;
+            public float shockwaveStopwatch = 0f;
+            public float shockwaveStopwatchMax = 10f;
+            public float shockwaveRadius = 60f;
+            public List<CharacterBody> shockwavedBodies;
+            public float shockwaveFireTime = 0f;
+            public bool shockwaving = false;
+            public SphereSearch sphereSearch;
+            public TeamMask teamMask;
+
             public Vector3 rotation = Vector3.forward;
             public Vector3 rotationTarget = Vector3.forward;
             public Vector3 rotationVelocity = Vector3.zero;
             public float rotationTime = 0f;
             public float rotationTimeMax = 6f;
-            public bool effectOnDeath = true;
-            public float stopwatch = 0f;
+
+            public GameObject icicleAura;
+            public float icicleAuraScale;
+            public float icicleAuraScaleVelocity;
 
             public void Awake()
             {
                 characterBody = GetComponent<CharacterBody>();
-                visualAura = transform.Find("VisualAura").gameObject;
-                Transform particles = visualAura.transform.Find("Particles");
-                // ArrayUtils.ArrayAppend(ref particleSystems, particles.Find("Chunks").gameObject.GetComponent<ParticleSystem>());
-                // ArrayUtils.ArrayAppend(ref particleSystems, particles.Find("Ring, Core").gameObject.GetComponent<ParticleSystem>());
-                ArrayUtils.ArrayAppend(ref particleSystems, particles.Find("Ring, Outer").gameObject.GetComponent<ParticleSystem>());
-                // ArrayUtils.ArrayAppend(ref particleSystems, particles.Find("Ring, Procced").gameObject.GetComponent<ParticleSystem>());
-                ArrayUtils.ArrayAppend(ref particleSystems, particles.Find("SpinningSharpChunks").gameObject.GetComponent<ParticleSystem>());
-                ArrayUtils.ArrayAppend(ref particleSystems, particles.Find("Area").gameObject.GetComponent<ParticleSystem>());
-                Util.PlaySound("Play_item_proc_icicle", gameObject);
-                foreach (ParticleSystem particleSystem in particleSystems)
-                {
-                    ParticleSystem.MainModule main = particleSystem.main;
-                    main.loop = true;
-                    particleSystem.Play();
-                }
+                shockwavedBodies = new List<CharacterBody>();
                 rotationTime = rotationTimeMax;
+                Util.PlaySound("Play_item_proc_icicle", gameObject);
             }
 
             public void Start()
@@ -242,32 +313,57 @@ namespace TheMysticSword.AspectAbilities
             public void FixedUpdate()
             {
                 stopwatch += Time.fixedDeltaTime;
+                shockwaveStopwatch += Time.fixedDeltaTime;
 
-                radius = Mathf.SmoothDamp(radius, maxRadius, ref growVelocity, growTime);
-
-                if (NetworkServer.active)
+                if (shockwaveStopwatch >= shockwaveStopwatchMax)
                 {
-                    float radiusSqr = Mathf.Pow(radius, 2);
-                    for (TeamIndex teamIndex = 0; teamIndex < TeamIndex.Count; teamIndex++)
+                    shockwaveStopwatch = 0f;
+                    if (NetworkServer.active)
                     {
-                        if (teamIndex != characterBody.teamComponent.teamIndex)
+                        EffectManager.SpawnEffect(iceShockwave, new EffectData
                         {
-                            foreach (TeamComponent teamComponent in TeamComponent.GetTeamMembers(teamIndex))
-                            {
-                                if ((teamComponent.transform.position - transform.position).sqrMagnitude <= radiusSqr)
-                                {
-                                    CharacterBody body2 = teamComponent.GetComponent<CharacterBody>();
-                                    if (body2)
-                                    {
-                                        body2.GetComponent<Buffs.IceCrystalDebuff.CurseCount>().Stack(cursePenaltyPerStack, cursePenaltyStackFrequency);
-                                    }
-                                }
-                            }
-                        }
+                            origin = transform.position,
+                            scale = shockwaveRadius,
+                            rotation = Quaternion.Euler(rotation)
+                        }, true);
+                        shockwaving = true;
+                        shockwaveFireTime = 0f;
+                        sphereSearch = new SphereSearch
+                        {
+                            mask = LayerIndex.entityPrecise.mask,
+                            origin = transform.position,
+                            queryTriggerInteraction = QueryTriggerInteraction.Collide,
+                            radius = shockwaveRadius
+                        };
+                        teamMask = TeamMask.AllExcept(TeamComponent.GetObjectTeam(characterBody.gameObject));
+                        shockwavedBodies.Clear();
                     }
                 }
 
-                visualAura.transform.localScale = Vector3.one * radius;
+                if (shockwaving && NetworkServer.active)
+                {
+                    shockwaveFireTime += Time.fixedDeltaTime;
+                    float t = shockwaveFireTime / iceShockwaveDuration;
+
+                    sphereSearch.radius = shockwaveRadius * iceShockwaveCurve.Evaluate(t);
+                    foreach (HurtBox hurtBox in sphereSearch.RefreshCandidates().FilterCandidatesByHurtBoxTeam(teamMask).FilterCandidatesByDistinctHurtBoxEntities().GetHurtBoxes())
+                    {
+                        if (hurtBox.healthComponent && hurtBox.healthComponent.body && !shockwavedBodies.Contains(hurtBox.healthComponent.body))
+                        {
+                            shockwavedBodies.Add(hurtBox.healthComponent.body);
+                            hurtBox.healthComponent.body.AddTimedBuff(AspectAbilitiesContent.Buffs.IceCrystalDebuff, 12f);
+                        }
+                    }
+
+                    if (t >= 1f)
+                    {
+                        shockwaving = false;
+                        shockwaveFireTime = 0f;
+                    }
+                }
+
+                icicleAuraScale = Mathf.SmoothDamp(icicleAuraScale, shockwaveRadius, ref icicleAuraScaleVelocity, 1f);
+                icicleAura.transform.localScale = Vector3.one * icicleAuraScale;
                 rotationTime += Time.fixedDeltaTime;
                 if (rotationTime >= rotationTimeMax)
                 {
@@ -279,7 +375,7 @@ namespace TheMysticSword.AspectAbilities
                     Mathf.SmoothDamp(rotation.y, rotationTarget.y, ref rotationVelocity.y, rotationTimeMax),
                     Mathf.SmoothDamp(rotation.z, rotationTarget.z, ref rotationVelocity.z, rotationTimeMax)
                 );
-                visualAura.transform.localRotation = Quaternion.Euler(rotation);
+                icicleAura.transform.localRotation = Quaternion.Euler(rotation);
             }
 
             public void OnEnable()
@@ -340,10 +436,6 @@ namespace TheMysticSword.AspectAbilities
             public override EntityStates.InterruptPriority GetMinimumInterruptPriority()
             {
                 return EntityStates.InterruptPriority.Death;
-            }
-
-            public GlacialWardDeath()
-            {
             }
 
             public static GameObject explosionEffectPrefab = iceCrystalExplosionEffect;
