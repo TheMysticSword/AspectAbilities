@@ -1,4 +1,8 @@
-﻿#### 1.4.8:
+﻿#### 1.4.9:
+* Glacial:
+	* Now spawns a 60m shockwave every 10 seconds that inflicts the health-reducing debuff for 12 seconds instead of constantly stacking the debuff
+		* This change should make the ability not as annoying when used by enemies and keep its usefulness when used by players
+#### 1.4.8:
 * Blazing:
 	* Homing Delay: ~~0.4s~~ ⇒ 0.7s
 * Glacial:

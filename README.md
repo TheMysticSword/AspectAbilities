@@ -27,13 +27,9 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
-#### 1.4.8:
-* Blazing:
-	* Homing Delay: ~~0.4s~~ ⇒ 0.7s
+#### 1.4.9:
 * Glacial:
-	* Growth Time: ~~4s~~ ⇒ 6s
-* Reuploaded the mod because the previous patch didn't have any effect
-#### 1.4.7:
-* Fixed a bug that caused console errors whenever someone used an equipment, which also prevented Glacial elites from using their ability
+	* Now spawns a 60m shockwave every 10 seconds that inflicts the health-reducing debuff for 12 seconds instead of constantly stacking the debuff
+		* This change should make the ability not as annoying when used by enemies and keep its usefulness when used by players
   
 (Previous changelogs can be found [here](https://github.com/TheMysticSword/AspectAbilities/blob/main/CHANGELOG.md))
