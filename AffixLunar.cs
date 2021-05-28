@@ -3,9 +3,9 @@ using RoR2;
 using RoR2.Audio;
 using UnityEngine.Networking;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public class AffixLunar : BaseAspectAbility
+    public class AffixLunar : BaseAspectAbilityOverride
     {
         public static NetworkSoundEventDef shellPrepSound;
         public static NetworkSoundEventDef shellUseSound;
@@ -16,9 +16,9 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
                 orig();
-                equipmentDef = RoR2Content.Equipment.AffixLunar;
-                equipmentDef.cooldown = 45f;
-                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixLunar;
+                aspectAbility.equipmentDef.cooldown = 45f;
+                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
             };
 
             shellPrepSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();
@@ -28,22 +28,22 @@ namespace TheMysticSword.AspectAbilities
             shellUseSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();
             shellUseSound.eventName = "Play_lunar_golem_attack2_shieldActivate";
             AspectAbilitiesContent.Resources.networkSoundEventDefs.Add(shellUseSound);
-        }
 
-        public override bool OnUse(EquipmentSlot self)
-        {
-            EffectData effectData = new EffectData
+            aspectAbility.onUseOverride = (self) =>
             {
-                origin = self.characterBody.corePosition,
-                rotation = Quaternion.Euler(self.characterBody.inputBank.aimDirection)
+                EffectData effectData = new EffectData
+                {
+                    origin = self.characterBody.corePosition,
+                    rotation = Quaternion.Euler(self.characterBody.inputBank.aimDirection)
+                };
+                effectData.SetHurtBoxReference(self.characterBody.mainHurtBox);
+                EffectManager.SpawnEffect(Resources.Load<GameObject>("Prefabs/Effects/LunarGolemShieldCharge"), effectData, true);
+                EntitySoundManager.EmitSoundServer(shellPrepSound.index, self.characterBody.networkIdentity);
+                AspectAbilitiesAffixLunar component = GetAffixComponent(self.characterBody.gameObject);
+                component.activate = true;
+                component.prepTime = 1f;
+                return true;
             };
-            effectData.SetHurtBoxReference(self.characterBody.mainHurtBox);
-            EffectManager.SpawnEffect(Resources.Load<GameObject>("Prefabs/Effects/LunarGolemShieldCharge"), effectData, true);
-            EntitySoundManager.EmitSoundServer(shellPrepSound.index, self.characterBody.networkIdentity);
-            AspectAbilitiesAffixLunar component = GetAffixComponent(self.characterBody.gameObject);
-            component.activate = true;
-            component.prepTime = 1f;
-            return true;
         }
 
         public static AspectAbilitiesAffixLunar GetAffixComponent(GameObject obj)

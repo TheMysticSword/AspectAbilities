@@ -8,16 +8,20 @@ using R2API.Networking.Interfaces;
 using UnityEngine.Networking;
 using R2API.Utils;
 
-namespace TheMysticSword.AspectAbilities.Buffs
+namespace AspectAbilities.Buffs
 {
     public class IceCrystalDebuff : BaseBuff
     {
+        public override Sprite LoadSprite(string assetName)
+        {
+            return Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
+        }
+
         public override void OnLoad()
         {
             buffDef.name = "IceCrystalDebuff";
             buffDef.buffColor = AffixWhite.iceCrystalColor;
             buffDef.canStack = true;
-            buffDef.iconSprite = Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
             buffDef.isDebuff = true;
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
@@ -44,6 +48,8 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 }
             };
 
+            AddCursePenaltyModifier(0.5f);
+
             IL.RoR2.CharacterBody.RecalculateStats += (il) =>
             {
                 ILCursor c = new ILCursor(il);
@@ -51,27 +57,8 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 int maxShieldPrevPos = 49;
                 int trueMaxHealthPos = 50;
                 int trueMaxShieldPos = 52;
-                int permaCurseBuffCountPos = 78;
                 int maxHealthDeltaPos = 80;
                 int maxShieldDeltaPos = 81;
-                // increase curse penalty
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchLdcR4(1),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("set_cursePenalty")
-                );
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchCallOrCallvirt<CharacterBody>("GetBuffCount"),
-                    x => x.MatchStloc(permaCurseBuffCountPos)
-                );
-                c.MoveAfterLabels();
-                c.Emit(OpCodes.Ldarg_0);
-                c.EmitDelegate<System.Action<CharacterBody>>((characterBody) =>
-                {
-                    characterBody.cursePenalty += GetCurrent(characterBody);
-                });
                 // don't regen health when this curse penalty is removed
                 c.GotoNext(
                     MoveType.After,

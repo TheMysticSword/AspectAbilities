@@ -27,9 +27,7 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 
 ---
 ### Changelog:
-#### 1.4.9:
-* Glacial:
-	* Now spawns a 60m shockwave every 10 seconds that inflicts the health-reducing debuff for 12 seconds instead of constantly stacking the debuff
-		* This change should make the ability not as annoying when used by enemies and keep its usefulness when used by players
+#### 1.4.10:
+* Added MysticsRisky2Utils dependency
   
 (Previous changelogs can be found [here](https://github.com/TheMysticSword/AspectAbilities/blob/main/CHANGELOG.md))

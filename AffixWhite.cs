@@ -10,9 +10,9 @@ using R2API.Utils;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public class AffixWhite : BaseAspectAbility
+    public class AffixWhite : BaseAspectAbilityOverride
     {
         public static GameObject iceCrystal;
         public static GameObject iceCrystalProjectile;
@@ -40,9 +40,9 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
                 orig();
-                equipmentDef = RoR2Content.Equipment.AffixWhite;
-                equipmentDef.cooldown = 45f;
-                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixWhite;
+                aspectAbility.equipmentDef.cooldown = 45f;
+                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
             };
 
             AspectAbilitiesContent.Resources.entityStateTypes.Add(typeof(GlacialWardDeath));
@@ -201,60 +201,60 @@ namespace TheMysticSword.AspectAbilities
             AspectAbilitiesContent.Resources.effectPrefabs.Add(iceCrystalExplosionEffect);
             AspectAbilitiesContent.Resources.effectPrefabs.Add(iceShockwave);
             AspectAbilitiesContent.Resources.projectilePrefabs.Add(iceCrystalProjectile);
-        }
 
-        public override bool OnUse(EquipmentSlot self)
-        {
-            // spawn a health-reducing crystal ward
-            Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
+            aspectAbility.onUseOverride = (self) =>
+            {
+                // spawn a health-reducing crystal ward
+                Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
 
-            bool fire = false;
-            Vector3 finalPosition = Vector3.zero;
-            RaycastHit raycastHit;
-            if (Physics.Raycast(aimRay, out raycastHit, 1000f, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
-            {
-                finalPosition = raycastHit.point;
-                fire = true;
-            }
-            if (!self.characterBody.isPlayerControlled)
-            {
-                if (self.characterBody.master)
+                bool fire = false;
+                Vector3 finalPosition = Vector3.zero;
+                RaycastHit raycastHit;
+                if (Physics.Raycast(aimRay, out raycastHit, 1000f, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
                 {
-                    RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
-                    if (target != null && target.bestHurtBox)
+                    finalPosition = raycastHit.point;
+                    fire = true;
+                }
+                if (!self.characterBody.isPlayerControlled)
+                {
+                    if (self.characterBody.master)
                     {
-                        finalPosition = target.bestHurtBox.transform.position;
-                        fire = true;
+                        RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
+                        if (target != null && target.bestHurtBox)
+                        {
+                            finalPosition = target.bestHurtBox.transform.position;
+                            fire = true;
+                        }
                     }
                 }
-            }
-            if (fire)
-            {
-                Vector3 distance = finalPosition - aimRay.origin;
-                Vector2 distance2 = new Vector2(distance.x, distance.z);
-                float magnitude = distance2.magnitude;
-                Vector2 vector2 = distance2 / magnitude;
-                float y = Trajectory.CalculateInitialYSpeed(flyTime, distance.y);
-                float num = magnitude / flyTime;
-                Vector3 direction = new Vector3(vector2.x * num, y, vector2.y * num);
-                magnitude = direction.magnitude;
+                if (fire)
+                {
+                    Vector3 distance = finalPosition - aimRay.origin;
+                    Vector2 distance2 = new Vector2(distance.x, distance.z);
+                    float magnitude = distance2.magnitude;
+                    Vector2 vector2 = distance2 / magnitude;
+                    float y = Trajectory.CalculateInitialYSpeed(flyTime, distance.y);
+                    float num = magnitude / flyTime;
+                    Vector3 direction = new Vector3(vector2.x * num, y, vector2.y * num);
+                    magnitude = direction.magnitude;
 
-                Quaternion rotation = Util.QuaternionSafeLookRotation(direction);
-                ProjectileManager.instance.FireProjectile(
-                    iceCrystalProjectile,
-                    aimRay.origin,
-                    rotation,
-                    self.characterBody.gameObject,
-                    0f,
-                    0f,
-                    false,
-                    DamageColorIndex.Default,
-                    null,
-                    magnitude
-                );
-                return true;
-            }
-            return false;
+                    Quaternion rotation = Util.QuaternionSafeLookRotation(direction);
+                    ProjectileManager.instance.FireProjectile(
+                        iceCrystalProjectile,
+                        aimRay.origin,
+                        rotation,
+                        self.characterBody.gameObject,
+                        0f,
+                        0f,
+                        false,
+                        DamageColorIndex.Default,
+                        null,
+                        magnitude
+                    );
+                    return true;
+                }
+                return false;
+            };
         }
 
         public class GlacialWardController : MonoBehaviour

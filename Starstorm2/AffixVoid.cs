@@ -11,9 +11,9 @@ using Starstorm2;
 using Starstorm2.Cores.Elites;
 using RoR2.Audio;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public class AffixVoid : BaseAspectAbility
+    public class AffixVoid : BaseAspectAbilityOverride
     {
         public static NetworkSoundEventDef useSound;
         public static NetworkSoundEventDef hitSound;
@@ -28,12 +28,12 @@ namespace TheMysticSword.AspectAbilities
                     EquipmentDef affixVoidDef = Starstorm2.Modules.Items.equipmentDefs.FirstOrDefault(x => x.name == "AffixVoid");
                     if (affixVoidDef)
                     {
-                        equipmentDef = affixVoidDef;
-                        equipmentDef.cooldown = 45f;
-                        LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+                        aspectAbility.equipmentDef = affixVoidDef;
+                        aspectAbility.equipmentDef.cooldown = 45f;
+                        LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
                     }
                 };
-                aiMaxDistance = Mathf.Infinity;
+                aspectAbility.aiMaxUseDistance = Mathf.Infinity;
 
                 useSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();
                 useSound.eventName = "Play_ui_obj_nullWard_activate";
@@ -42,33 +42,33 @@ namespace TheMysticSword.AspectAbilities
                 hitSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();
                 hitSound.eventName = "Play_nullifier_attack1_root";
                 AspectAbilitiesContent.Resources.networkSoundEventDefs.Add(hitSound);
-            }
-        }
 
-        public override bool OnUse(EquipmentSlot self)
-        {
-            // temporarily disable the primary skill of each enemy in the bubble
-
-            EntitySoundManager.EmitSoundServer(useSound.index, self.characterBody.gameObject);
-
-            SphereSearch sphereSearch = new SphereSearch
-            {
-                mask = LayerIndex.entityPrecise.mask,
-                origin = self.characterBody.corePosition,
-                queryTriggerInteraction = QueryTriggerInteraction.Collide,
-                radius = 0f
-            };
-            TeamMask teamMask = TeamMask.AllExcept(TeamComponent.GetObjectTeam(self.characterBody.gameObject));
-            foreach (HurtBox hurtBox in sphereSearch.RefreshCandidates().FilterCandidatesByHurtBoxTeam(teamMask).FilterCandidatesByDistinctHurtBoxEntities().GetHurtBoxes())
-            {
-                if (hurtBox.healthComponent && hurtBox.healthComponent.body)
+                aspectAbility.onUseOverride = (self) =>
                 {
-                    hurtBox.healthComponent.body.AddTimedBuff(AspectAbilitiesContent.Buffs.StarstormVoidLocked, 8f);
-                    EntitySoundManager.EmitSoundServer(hitSound.index, hurtBox.healthComponent.body.gameObject);
-                }
-            }
+                    // temporarily disable the primary skill of each enemy in the bubble
 
-            return true;
+                    EntitySoundManager.EmitSoundServer(useSound.index, self.characterBody.gameObject);
+
+                    SphereSearch sphereSearch = new SphereSearch
+                    {
+                        mask = LayerIndex.entityPrecise.mask,
+                        origin = self.characterBody.corePosition,
+                        queryTriggerInteraction = QueryTriggerInteraction.Collide,
+                        radius = 0f
+                    };
+                    TeamMask teamMask = TeamMask.AllExcept(TeamComponent.GetObjectTeam(self.characterBody.gameObject));
+                    foreach (HurtBox hurtBox in sphereSearch.RefreshCandidates().FilterCandidatesByHurtBoxTeam(teamMask).FilterCandidatesByDistinctHurtBoxEntities().GetHurtBoxes())
+                    {
+                        if (hurtBox.healthComponent && hurtBox.healthComponent.body)
+                        {
+                            hurtBox.healthComponent.body.AddTimedBuff(AspectAbilitiesContent.Buffs.StarstormVoidLocked, 8f);
+                            EntitySoundManager.EmitSoundServer(hitSound.index, hurtBox.healthComponent.body.gameObject);
+                        }
+                    }
+
+                    return true;
+                };
+            }
         }
     }
 }
