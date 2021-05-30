@@ -32,6 +32,7 @@ namespace AspectAbilities
                 aspectAbility.equipmentDef = RoR2Content.Equipment.AffixPoison;
                 aspectAbility.equipmentDef.cooldown = 90f;
                 LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
 
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();

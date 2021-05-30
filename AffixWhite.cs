@@ -43,6 +43,7 @@ namespace AspectAbilities
                 aspectAbility.equipmentDef = RoR2Content.Equipment.AffixWhite;
                 aspectAbility.equipmentDef.cooldown = 45f;
                 LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
 
             AspectAbilitiesContent.Resources.entityStateTypes.Add(typeof(GlacialWardDeath));

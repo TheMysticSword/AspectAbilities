@@ -19,6 +19,7 @@ namespace AspectAbilities
                 aspectAbility.equipmentDef = RoR2Content.Equipment.AffixLunar;
                 aspectAbility.equipmentDef.cooldown = 45f;
                 LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
 
             shellPrepSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();

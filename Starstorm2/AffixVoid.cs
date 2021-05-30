@@ -31,6 +31,7 @@ namespace AspectAbilities
                         aspectAbility.equipmentDef = affixVoidDef;
                         aspectAbility.equipmentDef.cooldown = 45f;
                         LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                        AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
                     }
                 };
                 aspectAbility.aiMaxUseDistance = Mathf.Infinity;

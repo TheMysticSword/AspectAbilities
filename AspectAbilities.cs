@@ -287,7 +287,7 @@ namespace AspectAbilities
                 },
                 () =>
                 {
-                    contentLoadHelper.DispatchLoad<AspectAbility>(AspectAbilitiesPlugin.executingAssembly, typeof(BaseAspectAbilityOverride), x => AspectAbilitiesPlugin.registeredAspectAbilities = AspectAbilitiesPlugin.registeredAspectAbilities.Concat(x).ToList());
+                    contentLoadHelper.DispatchLoad<AspectAbility>(AspectAbilitiesPlugin.executingAssembly, typeof(BaseAspectAbilityOverride), null);
                 }
             };
             int num;

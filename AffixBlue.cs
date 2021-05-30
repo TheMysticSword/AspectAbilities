@@ -20,6 +20,7 @@ namespace AspectAbilities
                 aspectAbility.equipmentDef = RoR2Content.Equipment.AffixBlue;
                 aspectAbility.equipmentDef.cooldown = 15f;
                 LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
             aspectAbility.aiMaxUseDistance = Mathf.Infinity;
 

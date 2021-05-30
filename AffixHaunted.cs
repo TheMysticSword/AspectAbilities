@@ -35,6 +35,7 @@ namespace AspectAbilities
                 aspectAbility.equipmentDef = RoR2Content.Equipment.AffixHaunted;
                 aspectAbility.equipmentDef.cooldown = 7f;
                 LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
 
             remapHealingToHauntedTexture = new Texture2D(256, 16, TextureFormat.ARGB32, false);
