@@ -94,7 +94,7 @@ namespace AspectAbilities
                                 }
                             }
 
-                            float randomChance = (1f - self.healthComponent.combinedHealthFraction) * 200f;
+                            float randomChance = aspectAbility.aiHealthFractionToUseChance.Evaluate(1f - self.healthComponent.combinedHealthFraction);
                             if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
                         }
                     }
@@ -261,6 +261,16 @@ namespace AspectAbilities
     {
         public EquipmentDef equipmentDef;
         public float aiMaxUseDistance;
+        public AnimationCurve aiHealthFractionToUseChance = new AnimationCurve {
+            keys = new Keyframe[]
+            {
+                new Keyframe(0f, 0f, 0f, Mathf.Tan(45f * Mathf.Deg2Rad)),
+                new Keyframe(0.5f, 1f, Mathf.Tan(-45f * Mathf.Deg2Rad), 0f),
+                new Keyframe(1f, 1f, 0f, 0f)
+            },
+            preWrapMode = WrapMode.Clamp,
+            postWrapMode = WrapMode.Clamp
+        };
         public System.Func<EquipmentSlot, bool> onUseOverride;
         public bool autoAppendedToken;
     }
