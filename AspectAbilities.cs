@@ -94,7 +94,7 @@ namespace AspectAbilities
                                 }
                             }
 
-                            float randomChance = aspectAbility.aiHealthFractionToUseChance.Evaluate(1f - self.healthComponent.combinedHealthFraction);
+                            float randomChance = aspectAbility.aiHealthFractionToUseChance.Evaluate(1f - self.healthComponent.combinedHealthFraction) * 100f;
                             if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
                         }
                     }
