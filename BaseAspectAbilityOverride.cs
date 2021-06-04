@@ -15,7 +15,6 @@ namespace AspectAbilities
         {
             aspectAbility = new AspectAbility
             {
-                aiMaxUseDistance = 60f,
                 autoAppendedToken = true
             };
             OnLoad();

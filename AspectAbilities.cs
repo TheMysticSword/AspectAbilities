@@ -260,7 +260,7 @@ namespace AspectAbilities
     public class AspectAbility
     {
         public EquipmentDef equipmentDef;
-        public float aiMaxUseDistance;
+        public float aiMaxUseDistance = 60f;
         public AnimationCurve aiHealthFractionToUseChance = new AnimationCurve {
             keys = new Keyframe[]
             {
