@@ -257,7 +257,7 @@ namespace AspectAbilities
         }
     }
 
-    public struct AspectAbility
+    public class AspectAbility
     {
         public EquipmentDef equipmentDef;
         public float aiMaxUseDistance;
