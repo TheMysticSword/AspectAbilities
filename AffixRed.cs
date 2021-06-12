@@ -113,7 +113,7 @@ namespace AspectAbilities
 
             public void FixedUpdate()
             {
-                if (characterBody && characterBody.healthComponent.alive)
+                if (characterBody && characterBody.healthComponent && characterBody.healthComponent.alive)
                 {
                     timer += Time.fixedDeltaTime;
                     if (ammo > 0)

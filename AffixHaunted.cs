@@ -83,16 +83,19 @@ namespace AspectAbilities
                             healedTargets.Add(teamMember.body.healthComponent);
                         }
                     }
-                    // and add the caster to the "already healed" list so that they don't get healed
-                    if (!healedTargets.Contains(self.characterBody.healthComponent))
+                    if (self.characterBody.healthComponent)
                     {
-                        healedTargets.Add(self.characterBody.healthComponent);
+                        // and add the caster to the "already healed" list so that they don't get healed
+                        if (!healedTargets.Contains(self.characterBody.healthComponent))
+                        {
+                            healedTargets.Add(self.characterBody.healthComponent);
+                        }
+                        // heal ourselves for a lower value
+                        self.characterBody.healthComponent.HealFraction(0.1f, default(ProcChainMask));
                     }
+
                     // replace the pulse's healed list with our new one
                     healPulseController.healPulse.SetFieldValue("healedTargets", healedTargets);
-
-                    // heal ourselves for a lower value
-                    self.characterBody.healthComponent.HealFraction(0.1f, default(ProcChainMask));
                 }
                 return true;
             };

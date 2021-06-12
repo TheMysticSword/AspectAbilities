@@ -73,21 +73,24 @@ namespace AspectAbilities.Buffs
                 c.Emit(OpCodes.Ldloc, maxHealthDeltaPos);
                 c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
                 {
-                    AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
-                    float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
-                    if (healthGained > 0)
+                    if (characterBody.healthComponent)
                     {
-                        maxHealthDelta -= healthGained;
-                    }
-                    else if (healthGained < 0)
-                    {
-                        float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.value)));
-                        // don't reduce below 1
-                        if (takeDamage > characterBody.healthComponent.Networkhealth)
+                        AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
+                        float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
+                        if (healthGained > 0)
                         {
-                            takeDamage = characterBody.healthComponent.Networkhealth - 1f;
+                            maxHealthDelta -= healthGained;
                         }
-                        if (takeDamage > 0) characterBody.healthComponent.Networkhealth -= takeDamage;
+                        else if (healthGained < 0)
+                        {
+                            float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.value)));
+                            // don't reduce below 1
+                            if (takeDamage > characterBody.healthComponent.Networkhealth)
+                            {
+                                takeDamage = characterBody.healthComponent.Networkhealth - 1f;
+                            }
+                            if (takeDamage > 0) characterBody.healthComponent.Networkhealth -= takeDamage;
+                        }
                     }
                     return maxHealthDelta;
                 });
@@ -106,23 +109,26 @@ namespace AspectAbilities.Buffs
                 c.Emit(OpCodes.Ldloc, maxShieldDeltaPos);
                 c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
                 {
-                    AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
-                    float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
-                    if (healthGained > 0)
+                    if (characterBody.healthComponent)
                     {
-                        maxHealthDelta -= healthGained;
-                    }
-                    else if (healthGained < 0)
-                    {
-                        float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.value)));
-                        // don't reduce below 1
-                        if (takeDamage > characterBody.healthComponent.Networkshield)
+                        AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
+                        float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
+                        if (healthGained > 0)
                         {
-                            takeDamage = characterBody.healthComponent.Networkshield - 1f;
+                            maxHealthDelta -= healthGained;
                         }
-                        if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
+                        else if (healthGained < 0)
+                        {
+                            float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.value)));
+                            // don't reduce below 1
+                            if (takeDamage > characterBody.healthComponent.Networkshield)
+                            {
+                                takeDamage = characterBody.healthComponent.Networkshield - 1f;
+                            }
+                            if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
+                        }
+                        return maxHealthDelta;
                     }
-                    return maxHealthDelta;
                 });
                 c.Emit(OpCodes.Stloc, maxShieldDeltaPos);
             };

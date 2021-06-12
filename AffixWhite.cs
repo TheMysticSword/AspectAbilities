@@ -304,7 +304,7 @@ namespace AspectAbilities
                         if (oldest)
                         {
                             oldest.gameObject.GetComponent<GlacialWardController>().effectOnDeath = false;
-                            if (NetworkServer.active) oldest.healthComponent.Suicide();
+                            if (NetworkServer.active && oldest.healthComponent) oldest.healthComponent.Suicide();
                             instances.Remove(oldest);
                         }
                     }
