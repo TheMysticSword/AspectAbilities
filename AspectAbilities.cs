@@ -143,7 +143,7 @@ namespace AspectAbilities
             On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
             {
                 AspectAbility aspectAbility = FindAspectAbility(equipmentDef2);
-                if (!aspectAbility.Equals(default(AspectAbility)) && aspectAbility.onUseOverride != null)
+                if (aspectAbility != null && aspectAbility.onUseOverride != null)
                 {
                     return aspectAbility.onUseOverride(self);
                 }
