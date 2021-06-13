@@ -292,8 +292,9 @@ namespace AspectAbilities
             public float rotationTimeMax = 6f;
 
             public GameObject icicleAura;
-            public float icicleAuraScale;
+            public float icicleAuraScale = 0f;
             public float icicleAuraScaleVelocity;
+            public float icicleAuraGrowthTime = 9f;
 
             public void Awake()
             {
@@ -375,7 +376,7 @@ namespace AspectAbilities
                     }
                 }
 
-                icicleAuraScale = Mathf.SmoothDamp(icicleAuraScale, shockwaveRadius, ref icicleAuraScaleVelocity, 1f);
+                icicleAuraScale = Mathf.SmoothDamp(icicleAuraScale, shockwaveRadius, ref icicleAuraScaleVelocity, icicleAuraGrowthTime);
                 icicleAura.transform.localScale = Vector3.one * icicleAuraScale;
                 rotationTime += Time.fixedDeltaTime;
                 if (rotationTime >= rotationTimeMax)
