@@ -127,8 +127,8 @@ namespace AspectAbilities.Buffs
                             }
                             if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
                         }
-                        return maxHealthDelta;
                     }
+                    return maxHealthDelta;
                 });
                 c.Emit(OpCodes.Stloc, maxShieldDeltaPos);
             };
