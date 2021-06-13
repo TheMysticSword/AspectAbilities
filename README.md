@@ -28,6 +28,12 @@ Adds on-use effects to elite aspects. Enemies can use them starting from stage 1
 ---
 ### Changelog:
 #### 1.4.10:
+* Overloading:
+    * Now teleports to the aim reticle when used by players instead of teleporting to AI ground nodes
+* Glacial:
+    * Added a team color indicator
+    * Visual aura growth speed reduced to make it easier to notice where the enemy crystal landed
 * Added MysticsRisky2Utils dependency
+* Fixed Blazing aspect causing errors in the modded environment "A Moment, Hollow"
   
 (Previous changelogs can be found [here](https://github.com/TheMysticSword/AspectAbilities/blob/main/CHANGELOG.md))
