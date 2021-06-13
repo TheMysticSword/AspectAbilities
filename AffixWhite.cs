@@ -72,6 +72,18 @@ namespace AspectAbilities
             {
                 lightInfos[i].defaultColor = iceCrystalColor;
             }
+
+            // team area indicator
+            GameObject teamIndicator = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/Projectiles/PoisonStakeProjectile").transform.Find("ActiveVisuals/TeamAreaIndicator, FullSphere").gameObject, "AspectAbilitiesIceCrystalTeamIndicator", false);
+            Object.Destroy(teamIndicator.transform.Find("ProximityDetonator").gameObject);
+            teamIndicator.transform.SetParent(model.transform);
+            teamIndicator.transform.localPosition = Vector3.zero;
+            teamIndicator.transform.localScale = Vector3.one * 3f;
+
+            TeamAreaIndicator teamAreaIndicator = teamIndicator.GetComponent<TeamAreaIndicator>();
+            teamAreaIndicator.teamFilter = null;
+            teamAreaIndicator.teamComponent = body.GetComponent<TeamComponent>();
+
             // remove all particle systems that we don't need
             Object.Destroy(modelBaseTransform.Find("Mesh").Find("Beam").gameObject);
             Object.Destroy(modelBaseTransform.Find("Swirls").gameObject);
