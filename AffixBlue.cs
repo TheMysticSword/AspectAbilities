@@ -36,7 +36,6 @@ namespace AspectAbilities
             aspectAbility.onUseOverride = (self) =>
             {
                 // teleport to the cursor
-                Util.PlaySound("Play_jellyfish_spawn", self.characterBody.gameObject);
                 float maxDistance = 2000f;
                 Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
                 aimRay = CameraRigController.ModifyAimRayIfApplicable(aimRay, self.characterBody.gameObject, out _);
@@ -141,6 +140,8 @@ namespace AspectAbilities
 
             public void Fire(Vector3 startPosition, Vector3 endPosition)
             {
+                Util.PlaySound("Play_jellyfish_spawn", characterBody.gameObject);
+
                 if (active)
                 {
                     End(timer / timerMax);
