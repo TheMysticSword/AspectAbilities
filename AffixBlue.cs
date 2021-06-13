@@ -7,6 +7,7 @@ using R2API.Networking.Interfaces;
 using R2API.Utils;
 using System.Linq;
 using RoR2.CharacterAI;
+using System.Collections.Generic;
 
 namespace AspectAbilities
 {
@@ -36,18 +37,18 @@ namespace AspectAbilities
             {
                 // teleport to the cursor
                 Util.PlaySound("Play_jellyfish_spawn", self.characterBody.gameObject);
-                float minDistance = 35f;
                 float maxDistance = 2000f;
                 Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
-                RaycastHit raycastHit;
+                aimRay = CameraRigController.ModifyAimRayIfApplicable(aimRay, self.characterBody.gameObject, out _);
                 Vector3 startPosition = self.characterBody.transform.position;
                 Vector3 endPosition = aimRay.GetPoint(maxDistance);
-                if (Physics.Raycast(aimRay, out raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
-                {
-                    endPosition = raycastHit.point;
-                }
+                Rigidbody rigidbody = self.GetComponent<Rigidbody>();
+                if (!rigidbody) return false;
 
-                if (!self.characterBody.isPlayerControlled)
+                bool flyingCharacter = self.characterBody.isFlying;
+                if (self.characterBody.bodyIndex == BodyCatalog.FindBodyIndex("GrandParentBody")) flyingCharacter = false; // because isFlying is true for Grandparents
+
+                if (self.characterBody.master && self.characterBody.master.aiComponents.Length > 0)
                 {
                     // ai tweaks:
                     // teleport in front of the target with slight angle variation
@@ -64,33 +65,54 @@ namespace AspectAbilities
                                 angle = (Util.QuaternionSafeLookRotation(target.bestHurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
                             }
                             Vector3 offset = (25f + target.bestHurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
+
                             endPosition = target.bestHurtBox.transform.position + offset;
                         }
+
+                        // teleport a bit farther if current teleport distance is too short
+                        float minDistance = 35;
+                        float currentDistance = Vector3.Distance(startPosition, endPosition);
+                        if (currentDistance < minDistance)
+                        {
+                            Vector3 direction = (endPosition - startPosition).normalized;
+                            float extraDistance = minDistance - currentDistance;
+                            endPosition += extraDistance * direction;
+                        }
+
+                        // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
+                        NodeGraph nodes = flyingCharacter ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
+                        NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
+                        nodes.GetNodePosition(nodeIndex, out endPosition);
+
+                        // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
+                        if (!flyingCharacter) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
+
+                        self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
+                        return true;
                     }
                 }
-
-                // teleport a bit farther if current teleport distance is too short
-                float currentDistance = Vector3.Distance(startPosition, endPosition);
-                if (currentDistance < minDistance)
+                else if (self.characterBody.isPlayerControlled)
                 {
-                    Vector3 direction = (endPosition - startPosition).normalized;
-                    float extraDistance = minDistance - currentDistance;
-                    endPosition += extraDistance * direction;
+                    if (Physics.Raycast(aimRay, out RaycastHit raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+                    {
+                        endPosition = raycastHit.point;
+
+                        float distanceToTravel = Vector3.Distance(endPosition, startPosition);
+                        Vector3 normalized = (endPosition - startPosition).normalized;
+
+                        Vector3 rigidbodyPosition = rigidbody.position;
+                        rigidbody.position = raycastHit.point + raycastHit.normal * self.characterBody.bestFitRadius * 2f;
+                        bool sweepTestResult = rigidbody.SweepTest(normalized, out RaycastHit raycastHit2, distanceToTravel);
+                        rigidbody.position = rigidbodyPosition;
+                        if (sweepTestResult) endPosition = raycastHit2.point;
+                        if (!flyingCharacter) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
+
+                        self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
+                        return true;
+                    }
+                    return false;
                 }
-
-                bool groundNodesDesired = !self.characterBody.isFlying;
-                if (self.characterBody.bodyIndex == BodyCatalog.FindBodyIndex("GrandParentBody")) groundNodesDesired = true; // because isFlying is true for Grandparents
-
-                // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
-                NodeGraph nodes = !groundNodesDesired ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
-                NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
-                nodes.GetNodePosition(nodeIndex, out endPosition);
-
-                // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
-                if (groundNodesDesired) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
-
-                self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
-                return true;
+                return false;
             };
         }
 
