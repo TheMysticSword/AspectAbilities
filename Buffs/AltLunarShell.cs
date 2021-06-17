@@ -1,10 +1,15 @@
 using UnityEngine;
 using RoR2;
 
-namespace TheMysticSword.AspectAbilities.Buffs
+namespace AspectAbilities.Buffs
 {
     public class AltLunarShell : BaseBuff
     {
+        public override Sprite LoadSprite(string assetName)
+        {
+            return Resources.Load<Sprite>("Textures/BuffIcons/texBuffLunarShellIcon");
+        }
+
         public static Material shellMaterial;
 
         public override void OnLoad()
@@ -13,7 +18,6 @@ namespace TheMysticSword.AspectAbilities.Buffs
             // that's why we are going to use a custom shell buff
 
             buffDef.name = "AltLunarShell";
-            buffDef.iconSprite = Resources.Load<Sprite>("Textures/BuffIcons/texBuffLunarShellIcon");
             buffDef.buffColor = new Color32(97, 163, 239, 255);
             buffDef.canStack = false;
             buffDef.isDebuff = false;
@@ -43,14 +47,15 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 }
             };
 
-            GenericGameEvents.OnApplyDamageReductionModifiers += (damageInfo, attackerInfo, victimInfo, damage) =>
+            MysticsRisky2Utils.GenericGameEvents.OnApplyDamageReductionModifiers += GenericGameEvents_OnApplyDamageReductionModifiers;
+        }
+
+        public void GenericGameEvents_OnApplyDamageReductionModifiers(DamageInfo damageInfo, MysticsRisky2Utils.MysticsRisky2UtilsPlugin.GenericCharacterInfo attackerInfo, MysticsRisky2Utils.MysticsRisky2UtilsPlugin.GenericCharacterInfo victimInfo, ref float damage)
+        {
+            if (victimInfo.body && victimInfo.body.HasBuff(AspectAbilitiesContent.Buffs.AltLunarShell) && victimInfo.healthComponent)
             {
-                if (victimInfo.body && victimInfo.body.HasBuff(AspectAbilitiesContent.Buffs.AltLunarShell) && victimInfo.healthComponent)
-                {
-                    damage = Mathf.Min(damage, victimInfo.healthComponent.fullCombinedHealth * 0.1f);
-                }
-                return damage;
-            };
+                damage = Mathf.Min(damage, victimInfo.healthComponent.fullCombinedHealth * 0.1f);
+            }
         }
     }
 }

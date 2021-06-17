@@ -2,16 +2,20 @@ using UnityEngine;
 using RoR2;
 using RoR2.Skills;
 
-namespace TheMysticSword.AspectAbilities.Buffs
+namespace AspectAbilities.Buffs
 {
     public class StarstormVoidLocked : BaseBuff
     {
+        public override Sprite LoadSprite(string assetName)
+        {
+            return Resources.Load<Sprite>("Textures/BuffIcons/texBuffFullCritIcon");
+        }
+
         public override void OnLoad()
         {
             buffDef.name = "StarstormVoidLocked";
             buffDef.buffColor = new Color32(203, 121, 213, 255);
             buffDef.canStack = false;
-            buffDef.iconSprite = Resources.Load<Sprite>("Textures/BuffIcons/texBuffFullCritIcon");
             buffDef.isDebuff = true;
 
             SkillDef skillDef = ScriptableObject.CreateInstance<SkillDef>();
@@ -62,7 +66,7 @@ namespace TheMysticSword.AspectAbilities.Buffs
             On.RoR2.CharacterBody.UpdateAllTemporaryVisualEffects += (orig, self) =>
             {
                 orig(self);
-                self.UpdateSingleTemporaryVisualEffect(ref BaseAspectAbility.GetDefaultComponent(self.gameObject).tempEffect, "Prefabs/TemporaryVisualEffects/NullifyStack3Effect", self.radius, self.HasBuff(AspectAbilitiesContent.Buffs.StarstormVoidLocked), "");
+                self.UpdateSingleTemporaryVisualEffect(ref BaseAspectAbilityOverride.GetDefaultComponent(self.gameObject).tempEffect, "Prefabs/TemporaryVisualEffects/NullifyStack3Effect", self.radius, self.HasBuff(AspectAbilitiesContent.Buffs.StarstormVoidLocked), "");
             };
         }
     }

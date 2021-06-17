@@ -8,16 +8,20 @@ using R2API.Networking.Interfaces;
 using UnityEngine.Networking;
 using R2API.Utils;
 
-namespace TheMysticSword.AspectAbilities.Buffs
+namespace AspectAbilities.Buffs
 {
     public class IceCrystalDebuff : BaseBuff
     {
+        public override Sprite LoadSprite(string assetName)
+        {
+            return Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
+        }
+
         public override void OnLoad()
         {
             buffDef.name = "IceCrystalDebuff";
             buffDef.buffColor = AffixWhite.iceCrystalColor;
             buffDef.canStack = true;
-            buffDef.iconSprite = Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
             buffDef.isDebuff = true;
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
@@ -44,6 +48,8 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 }
             };
 
+            AddCursePenaltyModifier(0.5f);
+
             IL.RoR2.CharacterBody.RecalculateStats += (il) =>
             {
                 ILCursor c = new ILCursor(il);
@@ -51,27 +57,8 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 int maxShieldPrevPos = 49;
                 int trueMaxHealthPos = 50;
                 int trueMaxShieldPos = 52;
-                int permaCurseBuffCountPos = 78;
                 int maxHealthDeltaPos = 80;
                 int maxShieldDeltaPos = 81;
-                // increase curse penalty
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchLdcR4(1),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("set_cursePenalty")
-                );
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchCallOrCallvirt<CharacterBody>("GetBuffCount"),
-                    x => x.MatchStloc(permaCurseBuffCountPos)
-                );
-                c.MoveAfterLabels();
-                c.Emit(OpCodes.Ldarg_0);
-                c.EmitDelegate<System.Action<CharacterBody>>((characterBody) =>
-                {
-                    characterBody.cursePenalty += GetCurrent(characterBody);
-                });
                 // don't regen health when this curse penalty is removed
                 c.GotoNext(
                     MoveType.After,
@@ -86,21 +73,24 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 c.Emit(OpCodes.Ldloc, maxHealthDeltaPos);
                 c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
                 {
-                    AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
-                    float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
-                    if (healthGained > 0)
+                    if (characterBody.healthComponent)
                     {
-                        maxHealthDelta -= healthGained;
-                    }
-                    else if (healthGained < 0)
-                    {
-                        float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.value)));
-                        // don't reduce below 1
-                        if (takeDamage > characterBody.healthComponent.Networkhealth)
+                        AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
+                        float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
+                        if (healthGained > 0)
                         {
-                            takeDamage = characterBody.healthComponent.Networkhealth - 1f;
+                            maxHealthDelta -= healthGained;
                         }
-                        if (takeDamage > 0) characterBody.healthComponent.Networkhealth -= takeDamage;
+                        else if (healthGained < 0)
+                        {
+                            float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.value)));
+                            // don't reduce below 1
+                            if (takeDamage > characterBody.healthComponent.Networkhealth)
+                            {
+                                takeDamage = characterBody.healthComponent.Networkhealth - 1f;
+                            }
+                            if (takeDamage > 0) characterBody.healthComponent.Networkhealth -= takeDamage;
+                        }
                     }
                     return maxHealthDelta;
                 });
@@ -119,21 +109,24 @@ namespace TheMysticSword.AspectAbilities.Buffs
                 c.Emit(OpCodes.Ldloc, maxShieldDeltaPos);
                 c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
                 {
-                    AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
-                    float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
-                    if (healthGained > 0)
+                    if (characterBody.healthComponent)
                     {
-                        maxHealthDelta -= healthGained;
-                    }
-                    else if (healthGained < 0)
-                    {
-                        float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.value)));
-                        // don't reduce below 1
-                        if (takeDamage > characterBody.healthComponent.Networkshield)
+                        AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
+                        float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
+                        if (healthGained > 0)
                         {
-                            takeDamage = characterBody.healthComponent.Networkshield - 1f;
+                            maxHealthDelta -= healthGained;
                         }
-                        if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
+                        else if (healthGained < 0)
+                        {
+                            float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.value)));
+                            // don't reduce below 1
+                            if (takeDamage > characterBody.healthComponent.Networkshield)
+                            {
+                                takeDamage = characterBody.healthComponent.Networkshield - 1f;
+                            }
+                            if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
+                        }
                     }
                     return maxHealthDelta;
                 });

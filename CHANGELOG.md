@@ -1,4 +1,12 @@
-﻿#### 1.4.9:
+﻿#### 1.4.10:
+* Overloading:
+    * Now teleports to the aim reticle when used by players instead of teleporting to AI ground nodes
+* Glacial:
+    * Added a team color indicator
+    * Visual aura growth speed reduced to make it easier to notice where the enemy crystal landed
+* Added MysticsRisky2Utils dependency
+* Fixed Blazing aspect causing errors in the modded environment "A Moment, Hollow"
+#### 1.4.9:
 * Glacial:
 	* Now spawns a 60m shockwave every 10 seconds that inflicts the health-reducing debuff for 12 seconds instead of constantly stacking the debuff
 		* This change should make the ability not as annoying when used by enemies and keep its usefulness when used by players

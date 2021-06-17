@@ -7,9 +7,9 @@ using System.Linq;
 using R2API.Networking.Interfaces;
 using R2API.Networking;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public class AffixPoison : BaseAspectAbility
+    public class AffixPoison : BaseAspectAbilityOverride
     {
         public static GameObject malachiteUrchinOrbitalMaster;
         public static GameObject malachiteUrchinOrbitalBody;
@@ -29,9 +29,10 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
                 orig();
-                equipmentDef = RoR2Content.Equipment.AffixPoison;
-                equipmentDef.cooldown = 90f;
-                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixPoison;
+                aspectAbility.equipmentDef.cooldown = 90f;
+                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
 
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();
@@ -51,13 +52,13 @@ namespace TheMysticSword.AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<MalachiteOrbitalController>();
             };
-        }
 
-        public override bool OnUse(EquipmentSlot self)
-        {
-            MalachiteOrbitalController orbitalController = self.characterBody.GetComponent<MalachiteOrbitalController>();
-            orbitalController.respawn += orbitalController.totalNormal;
-            return true;
+            aspectAbility.onUseOverride = (self) =>
+            {
+                MalachiteOrbitalController orbitalController = self.characterBody.GetComponent<MalachiteOrbitalController>();
+                orbitalController.respawn += orbitalController.totalNormal;
+                return true;
+            };
         }
 
         public class MalachiteOrbitalController : NetworkBehaviour

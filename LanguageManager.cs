@@ -2,7 +2,7 @@ using R2API;
 using RoR2;
 using System.Collections.Generic;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
     public class LanguageManager
     {

@@ -1,15 +1,25 @@
 using UnityEngine;
 using RoR2;
-using TheMysticSword.AspectAbilities.ContentManagement;
+using MysticsRisky2Utils.ContentManagement;
 using System.Collections.Generic;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public abstract class BaseAspectAbility : BaseLoadableAsset
+    public abstract class BaseAspectAbilityOverride : BaseLoadableAsset
     {
-        public EquipmentDef equipmentDef;
-        public float aiMaxDistance = 60f;
-        public abstract bool OnUse(EquipmentSlot self);
+        public override string TokenPrefix => AspectAbilitiesPlugin.TokenPrefix;
+
+        public AspectAbility aspectAbility;
+
+        public override void Load()
+        {
+            aspectAbility = new AspectAbility
+            {
+                autoAppendedToken = true
+            };
+            OnLoad();
+            asset = aspectAbility;
+        }
 
         public class AspectAbilitiesDefaultAbilityComponent : MonoBehaviour
         {

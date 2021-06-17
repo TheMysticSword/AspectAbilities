@@ -6,9 +6,9 @@ using R2API;
 using R2API.Utils;
 using System.Linq;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public class AffixRed : BaseAspectAbility
+    public class AffixRed : BaseAspectAbilityOverride
     {
         public static GameObject fireMissile;
         public static float missileDamage = 3f;
@@ -31,9 +31,10 @@ namespace TheMysticSword.AspectAbilities
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
                 orig();
-                equipmentDef = RoR2Content.Equipment.AffixRed;
-                equipmentDef.cooldown = 15f;
-                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixRed;
+                aspectAbility.equipmentDef.cooldown = 15f;
+                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
 
             // create blazing missile prefab
@@ -68,12 +69,12 @@ namespace TheMysticSword.AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<BlazingMissileLauncher>();
             };
-        }
 
-        public override bool OnUse(EquipmentSlot self)
-        {
-            self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += missilesPerUse;
-            return true;
+            aspectAbility.onUseOverride = (self) =>
+            {
+                self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += missilesPerUse;
+                return true;
+            };
         }
 
         public class BlazingMissileLauncher : NetworkBehaviour
@@ -112,7 +113,7 @@ namespace TheMysticSword.AspectAbilities
 
             public void FixedUpdate()
             {
-                if (characterBody && characterBody.healthComponent.alive)
+                if (characterBody && characterBody.healthComponent && characterBody.healthComponent.alive)
                 {
                     timer += Time.fixedDeltaTime;
                     if (ammo > 0)

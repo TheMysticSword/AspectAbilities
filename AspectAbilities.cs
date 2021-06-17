@@ -17,13 +17,16 @@ using System.Security.Permissions;
 using RoR2.ContentManagement;
 using System.Collections;
 using RoR2.Skills;
+using MysticsRisky2Utils;
+using System.Reflection;
 
 [module: UnverifiableCode]
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
     [BepInDependency(R2API.R2API.PluginGUID)]
+    [BepInDependency(MysticsRisky2UtilsPlugin.PluginGUID)]
     [BepInDependency(JarlykMods.Durability.DurabilityPlugin.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(Starstorm2.Starstorm.guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
@@ -32,11 +35,12 @@ namespace TheMysticSword.AspectAbilities
     {
         public const string PluginGUID = "com.TheMysticSword.AspectAbilities";
         public const string PluginName = "AspectAbilities";
-        public const string PluginVersion = "1.4.9";
+        public const string PluginVersion = "1.4.10";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
         public static BepInEx.Logging.ManualLogSource logger;
+        public static Assembly executingAssembly;
 
         public const string TokenPrefix = PluginName + "_";
 
@@ -45,20 +49,19 @@ namespace TheMysticSword.AspectAbilities
         public void Awake()
         {
             logger = Logger;
+            executingAssembly = Assembly.GetExecutingAssembly();
 
-            GenericGameEvents.Init();
             LanguageManager.Init();
-            StateSeralizerFix.Init();
 
-            AspectAbilities.ContentManagement.ContentLoadHelper.PluginAwakeLoad<BaseAspectAbility>();
+            MysticsRisky2Utils.ContentManagement.ContentLoadHelper.PluginAwakeLoad<BaseAspectAbilityOverride>(executingAssembly);
 
             // make elites auto-use equipment
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
                 if (self.equipmentSlot && self.equipmentSlot.stock > 0 && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && self.inputBank && !self.isPlayerControlled)
                 {
-                    BaseAspectAbility aspectAbility = FindAspectAbility(self.equipmentSlot.equipmentIndex);
-                    if (aspectAbility != default)
+                    AspectAbility aspectAbility = FindAspectAbility(self.equipmentSlot.equipmentIndex);
+                    if (!aspectAbility.Equals(default(AspectAbility)))
                     {
                         AspectAbilitiesBodyFields bodyFields = self.GetComponent<AspectAbilitiesBodyFields>();
                         if (bodyFields && bodyFields.aiCanUse)
@@ -77,21 +80,21 @@ namespace TheMysticSword.AspectAbilities
                             }
 
                             bool enemyNearby = false;
-                            if (aspectAbility.aiMaxDistance == Mathf.Infinity) enemyNearby = true;
-                            else if (aspectAbility.aiMaxDistance <= 0f) enemyNearby = false;
+                            if (aspectAbility.aiMaxUseDistance == Mathf.Infinity) enemyNearby = true;
+                            else if (aspectAbility.aiMaxUseDistance <= 0f) enemyNearby = false;
                             else if (self.master)
                             {
                                 BaseAI[] aiComponents = self.master.GetFieldValue<BaseAI[]>("aiComponents");
                                 foreach (BaseAI ai in aiComponents)
                                 {
-                                    if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= aspectAbility.aiMaxDistance)
+                                    if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= aspectAbility.aiMaxUseDistance)
                                     {
                                         enemyNearby = true;
                                     }
                                 }
                             }
 
-                            float randomChance = (1f - self.healthComponent.combinedHealthFraction) * 200f;
+                            float randomChance = aspectAbility.aiHealthFractionToUseChance.Evaluate(1f - (self.healthComponent ? self.healthComponent.combinedHealthFraction : 1f)) * 100f;
                             if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
                         }
                     }
@@ -101,7 +104,7 @@ namespace TheMysticSword.AspectAbilities
             // make enigma artifact not reroll aspects
             On.RoR2.Artifacts.EnigmaArtifactManager.OnServerEquipmentActivated += (orig, equipmentSlot, equipmentIndex) =>
             {
-                if (FindAspectAbility(equipmentIndex) != default) return;
+                if (!FindAspectAbility(equipmentIndex).Equals(default(AspectAbility))) return;
                 orig(equipmentSlot, equipmentIndex);
             };
 
@@ -139,10 +142,10 @@ namespace TheMysticSword.AspectAbilities
 
             On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
             {
-                BaseAspectAbility aspectAbility = FindAspectAbility(equipmentDef2);
-                if (aspectAbility != default)
+                AspectAbility aspectAbility = FindAspectAbility(equipmentDef2);
+                if (aspectAbility != null && aspectAbility.onUseOverride != null)
                 {
-                    return aspectAbility.OnUse(self);
+                    return aspectAbility.onUseOverride(self);
                 }
                 return orig(self, equipmentDef2);
             };
@@ -154,14 +157,28 @@ namespace TheMysticSword.AspectAbilities
             }
 
             starstorm2Loaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(Starstorm2.Starstorm.guid);
+
+            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            {
+                orig();
+                for (var i = 0; i < registeredAspectAbilities.Count; i++)
+                {
+                    AspectAbility aspectAbility = registeredAspectAbilities[i];
+                    if (!aspectAbility.autoAppendedToken)
+                    {
+                        aspectAbility.autoAppendedToken = true;
+                        LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                    }
+                }
+            };
         }
 
-        internal static List<BaseAspectAbility> registeredAspectAbilities = new List<BaseAspectAbility>();
-        public static BaseAspectAbility FindAspectAbility(EquipmentDef equipmentDef)
+        internal static List<AspectAbility> registeredAspectAbilities = new List<AspectAbility>();
+        public static AspectAbility FindAspectAbility(EquipmentDef equipmentDef)
         {
             return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef == equipmentDef);
         }
-        public static BaseAspectAbility FindAspectAbility(EquipmentIndex equipmentIndex)
+        public static AspectAbility FindAspectAbility(EquipmentIndex equipmentIndex)
         {
             return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef ? x.equipmentDef.equipmentIndex == equipmentIndex : false);
         }
@@ -233,6 +250,29 @@ namespace TheMysticSword.AspectAbilities
                 );
             }
         }
+
+        public static void RegisterAspectAbility(AspectAbility aspectAbility)
+        {
+            registeredAspectAbilities.Add(aspectAbility);
+        }
+    }
+
+    public class AspectAbility
+    {
+        public EquipmentDef equipmentDef;
+        public float aiMaxUseDistance = 60f;
+        public AnimationCurve aiHealthFractionToUseChance = new AnimationCurve {
+            keys = new Keyframe[]
+            {
+                new Keyframe(0f, 0f, 0f, Mathf.Tan(45f * Mathf.Deg2Rad)),
+                new Keyframe(0.5f, 1f, Mathf.Tan(-45f * Mathf.Deg2Rad), 0f),
+                new Keyframe(1f, 1f, 0f, 0f)
+            },
+            preWrapMode = WrapMode.Clamp,
+            postWrapMode = WrapMode.Clamp
+        };
+        public System.Func<EquipmentSlot, bool> onUseOverride;
+        public bool autoAppendedToken;
     }
 
     public class AspectAbilitiesContent : IContentPackProvider
@@ -248,16 +288,16 @@ namespace TheMysticSword.AspectAbilities
         public IEnumerator LoadStaticContentAsync(LoadStaticContentAsyncArgs args)
         {
             contentPack.identifier = identifier;
-            AspectAbilities.ContentManagement.ContentLoadHelper contentLoadHelper = new AspectAbilities.ContentManagement.ContentLoadHelper();
+            MysticsRisky2Utils.ContentManagement.ContentLoadHelper contentLoadHelper = new MysticsRisky2Utils.ContentManagement.ContentLoadHelper();
             System.Action[] loadDispatchers = new System.Action[]
             {
                 () =>
                 {
-                    contentLoadHelper.DispatchLoad<BuffDef>(typeof(AspectAbilities.Buffs.BaseBuff), x => contentPack.buffDefs.Add(x));
+                    contentLoadHelper.DispatchLoad<BuffDef>(AspectAbilitiesPlugin.executingAssembly, typeof(AspectAbilities.Buffs.BaseBuff), x => contentPack.buffDefs.Add(x));
                 },
                 () =>
                 {
-                    contentLoadHelper.DispatchLoad<BaseAspectAbility>(typeof(BaseAspectAbility), x => AspectAbilitiesPlugin.registeredAspectAbilities = AspectAbilitiesPlugin.registeredAspectAbilities.Concat(x).ToList());
+                    contentLoadHelper.DispatchLoad<AspectAbility>(AspectAbilitiesPlugin.executingAssembly, typeof(BaseAspectAbilityOverride), null);
                 }
             };
             int num;
@@ -278,7 +318,7 @@ namespace TheMysticSword.AspectAbilities
                 () =>
                 {
                     ContentLoadHelper.PopulateTypeFields<BuffDef>(typeof(Buffs), contentPack.buffDefs);
-                    AspectAbilities.ContentManagement.ContentLoadHelper.AddModPrefixToAssets<BuffDef>(contentPack.buffDefs);
+                    MysticsRisky2Utils.ContentManagement.ContentLoadHelper.AddPrefixToAssets<BuffDef>(contentPack.buffDefs, AspectAbilitiesPlugin.TokenPrefix);
                 },
                 () =>
                 {

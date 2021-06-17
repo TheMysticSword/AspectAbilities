@@ -1,24 +1,9 @@
-using RoR2;
-using R2API;
 using UnityEngine;
-using System.Collections.Generic;
-using System.Linq;
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
-using TheMysticSword.AspectAbilities.ContentManagement;
 
-namespace TheMysticSword.AspectAbilities.Buffs
+namespace AspectAbilities.Buffs
 {
-    public abstract class BaseBuff : BaseLoadableAsset
+    public abstract class BaseBuff : MysticsRisky2Utils.BaseAssetTypes.BaseBuff
     {
-        public BuffDef buffDef;
-
-        public override void Load()
-        {
-            buffDef = ScriptableObject.CreateInstance<BuffDef>();
-            OnLoad();
-
-            asset = buffDef;
-        }
+        public override string TokenPrefix => AspectAbilitiesPlugin.TokenPrefix;
     }
 }

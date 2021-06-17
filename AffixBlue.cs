@@ -7,21 +7,23 @@ using R2API.Networking.Interfaces;
 using R2API.Utils;
 using System.Linq;
 using RoR2.CharacterAI;
+using System.Collections.Generic;
 
-namespace TheMysticSword.AspectAbilities
+namespace AspectAbilities
 {
-    public class AffixBlue : BaseAspectAbility
+    public class AffixBlue : BaseAspectAbilityOverride
     {
         public override void OnLoad()
         {
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
                 orig();
-                equipmentDef = RoR2Content.Equipment.AffixBlue;
-                equipmentDef.cooldown = 15f;
-                LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
+                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixBlue;
+                aspectAbility.equipmentDef.cooldown = 15f;
+                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
             };
-            aiMaxDistance = Mathf.Infinity;
+            aspectAbility.aiMaxUseDistance = Mathf.Infinity;
 
             NetworkingAPI.RegisterMessageType<OverloadingBlinkController.SyncFire>();
 
@@ -30,67 +32,87 @@ namespace TheMysticSword.AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<OverloadingBlinkController>();
             };
-        }
 
-        public override bool OnUse(EquipmentSlot self)
-        {
-            // teleport to the cursor
-            Util.PlaySound("Play_jellyfish_spawn", self.characterBody.gameObject);
-            float minDistance = 35f;
-            float maxDistance = 2000f;
-            Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
-            RaycastHit raycastHit;
-            Vector3 startPosition = self.characterBody.transform.position;
-            Vector3 endPosition = aimRay.GetPoint(maxDistance);
-            if (Physics.Raycast(aimRay, out raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+            aspectAbility.onUseOverride = (self) =>
             {
-                endPosition = raycastHit.point;
-            }
+                // teleport to the cursor
+                float maxDistance = 2000f;
+                Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
+                aimRay = CameraRigController.ModifyAimRayIfApplicable(aimRay, self.characterBody.gameObject, out _);
+                Vector3 startPosition = self.characterBody.transform.position;
+                Vector3 endPosition = aimRay.GetPoint(maxDistance);
+                Rigidbody rigidbody = self.GetComponent<Rigidbody>();
+                if (!rigidbody) return false;
 
-            if (!self.characterBody.isPlayerControlled)
-            {
-                // ai tweaks:
-                // teleport in front of the target with slight angle variation
-                // NEVER teleport behind a player - you won't notice an enemy that suddenly appears behind you
-                if (self.characterBody.master)
+                bool flyingCharacter = self.characterBody.isFlying;
+                if (self.characterBody.bodyIndex == BodyCatalog.FindBodyIndex("GrandParentBody")) flyingCharacter = false; // because isFlying is true for Grandparents
+
+                if (self.characterBody.master && self.characterBody.master.aiComponents.Length > 0)
                 {
-                    RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
-                    if (target != null && target.bestHurtBox)
+                    // ai tweaks:
+                    // teleport in front of the target with slight angle variation
+                    // NEVER teleport behind a player - you won't notice an enemy that suddenly appears behind you
+                    if (self.characterBody.master)
                     {
-                        float angle = Random.value * 360f;
-                        if (target.bestHurtBox.healthComponent.body.inputBank)
+                        RoR2.CharacterAI.BaseAI.Target target = AspectAbilitiesPlugin.GetAITarget(self.characterBody.master);
+                        if (target != null && target.bestHurtBox)
                         {
-                            float angleVariation = 35f;
-                            angle = (Util.QuaternionSafeLookRotation(target.bestHurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
+                            float angle = Random.value * 360f;
+                            if (target.bestHurtBox.healthComponent.body.inputBank)
+                            {
+                                float angleVariation = 35f;
+                                angle = (Util.QuaternionSafeLookRotation(target.bestHurtBox.healthComponent.body.inputBank.aimDirection).eulerAngles.y + Random.Range(-angleVariation, angleVariation)) * Mathf.Deg2Rad;
+                            }
+                            Vector3 offset = (25f + target.bestHurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
+
+                            endPosition = target.bestHurtBox.transform.position + offset;
                         }
-                        Vector3 offset = (25f + target.bestHurtBox.healthComponent.body.radius) * new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
-                        endPosition = target.bestHurtBox.transform.position + offset;
+
+                        // teleport a bit farther if current teleport distance is too short
+                        float minDistance = 35;
+                        float currentDistance = Vector3.Distance(startPosition, endPosition);
+                        if (currentDistance < minDistance)
+                        {
+                            Vector3 direction = (endPosition - startPosition).normalized;
+                            float extraDistance = minDistance - currentDistance;
+                            endPosition += extraDistance * direction;
+                        }
+
+                        // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
+                        NodeGraph nodes = flyingCharacter ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
+                        NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
+                        nodes.GetNodePosition(nodeIndex, out endPosition);
+
+                        // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
+                        if (!flyingCharacter) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
+
+                        self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
+                        return true;
                     }
                 }
-            }
+                else if (self.characterBody.isPlayerControlled)
+                {
+                    if (Physics.Raycast(aimRay, out RaycastHit raycastHit, maxDistance, LayerIndex.world.mask, QueryTriggerInteraction.Ignore))
+                    {
+                        endPosition = raycastHit.point;
 
-            // teleport a bit farther if current teleport distance is too short
-            float currentDistance = Vector3.Distance(startPosition, endPosition);
-            if (currentDistance < minDistance)
-            {
-                Vector3 direction = (endPosition - startPosition).normalized;
-                float extraDistance = minDistance - currentDistance;
-                endPosition += extraDistance * direction;
-            }
-            
-            bool groundNodesDesired = !self.characterBody.isFlying;
-            if (self.characterBody.bodyIndex == BodyCatalog.FindBodyIndex("GrandParentBody")) groundNodesDesired = true; // because isFlying is true for Grandparents
+                        float distanceToTravel = Vector3.Distance(endPosition, startPosition);
+                        Vector3 normalized = (endPosition - startPosition).normalized;
 
-            // pick the nearest node to the endpoint. nodes are generally safer to use and won't get you stuck in terrain
-            NodeGraph nodes = !groundNodesDesired ? SceneInfo.instance.airNodes : SceneInfo.instance.groundNodes;
-            NodeGraph.NodeIndex nodeIndex = nodes.FindClosestNode(endPosition, self.characterBody.hullClassification);
-            nodes.GetNodePosition(nodeIndex, out endPosition);
+                        Vector3 rigidbodyPosition = rigidbody.position;
+                        rigidbody.position = raycastHit.point + raycastHit.normal * self.characterBody.bestFitRadius * 2f;
+                        bool sweepTestResult = rigidbody.SweepTest(normalized, out RaycastHit raycastHit2, distanceToTravel);
+                        rigidbody.position = rigidbodyPosition;
+                        if (sweepTestResult) endPosition = raycastHit2.point;
+                        if (!flyingCharacter) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
 
-            // if the caster is a ground-type entity, move them up a little bit to prevent falling through the world
-            if (groundNodesDesired) endPosition += self.characterBody.transform.position - self.characterBody.footPosition;
-
-            self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
-            return true;
+                        self.characterBody.gameObject.GetComponent<OverloadingBlinkController>().Fire(startPosition, endPosition);
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
+            };
         }
 
         public class OverloadingBlinkController : NetworkBehaviour
@@ -118,6 +140,8 @@ namespace TheMysticSword.AspectAbilities
 
             public void Fire(Vector3 startPosition, Vector3 endPosition)
             {
+                Util.PlaySound("Play_jellyfish_spawn", characterBody.gameObject);
+
                 if (active)
                 {
                     End(timer / timerMax);
