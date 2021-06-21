@@ -35,7 +35,7 @@ namespace AspectAbilities
     {
         public const string PluginGUID = "com.TheMysticSword.AspectAbilities";
         public const string PluginName = "AspectAbilities";
-        public const string PluginVersion = "1.4.10";
+        public const string PluginVersion = "1.4.11";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
@@ -61,7 +61,7 @@ namespace AspectAbilities
                 if (self.equipmentSlot && self.equipmentSlot.stock > 0 && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && self.inputBank && !self.isPlayerControlled)
                 {
                     AspectAbility aspectAbility = FindAspectAbility(self.equipmentSlot.equipmentIndex);
-                    if (!aspectAbility.Equals(default(AspectAbility)))
+                    if (aspectAbility != null)
                     {
                         AspectAbilitiesBodyFields bodyFields = self.GetComponent<AspectAbilitiesBodyFields>();
                         if (bodyFields && bodyFields.aiCanUse)
@@ -104,7 +104,7 @@ namespace AspectAbilities
             // make enigma artifact not reroll aspects
             On.RoR2.Artifacts.EnigmaArtifactManager.OnServerEquipmentActivated += (orig, equipmentSlot, equipmentIndex) =>
             {
-                if (!FindAspectAbility(equipmentIndex).Equals(default(AspectAbility))) return;
+                if (FindAspectAbility(equipmentIndex) != null) return;
                 orig(equipmentSlot, equipmentIndex);
             };
 

@@ -1,4 +1,6 @@
-﻿#### 1.4.10:
+﻿#### 1.4.11:
+* Fixed console error spam when an enemy has an equipment but it's not an elite aspect
+#### 1.4.10:
 * Overloading:
     * Now teleports to the aim reticle when used by players instead of teleporting to AI ground nodes
 * Glacial:
