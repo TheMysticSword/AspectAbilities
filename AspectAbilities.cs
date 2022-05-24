@@ -28,7 +28,6 @@ namespace AspectAbilities
     [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInDependency(MysticsRisky2UtilsPlugin.PluginGUID)]
     [BepInDependency(JarlykMods.Durability.DurabilityPlugin.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency(Starstorm2.Starstorm.guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilitiesPlugin : BaseUnityPlugin
@@ -156,7 +155,6 @@ namespace AspectAbilities
                 EquipmentDurabilityFix.Init();
             }
 
-            starstorm2Loaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(Starstorm2.Starstorm.guid);
 
             On.RoR2.EquipmentCatalog.Init += (orig) =>
             {
