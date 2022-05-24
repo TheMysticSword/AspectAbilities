@@ -42,12 +42,15 @@ namespace AspectAbilities
         public static BepInEx.Logging.ManualLogSource logger;
         public static Assembly executingAssembly;
 
+        public static AssetBundle assetBundle;
+
 
         public void Awake()
         {
             logger = Logger;
             executingAssembly = Assembly.GetExecutingAssembly();
 
+            assetBundle = AssetBundle.LoadFromFile(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Info.Location), "aspectabilitiesassetbundle"));
             LanguageManager.Init();
 
             MysticsRisky2Utils.ContentManagement.ContentLoadHelper.PluginAwakeLoad<BaseAspectAbilityOverride>(executingAssembly);
