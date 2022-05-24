@@ -158,30 +158,30 @@ namespace AspectAbilities
                 EquipmentDurabilityFix.Init();
             }
 
-
-            On.RoR2.EquipmentCatalog.Init += (orig) =>
+            // create default AspectAbility instances for modded aspects
+            RoR2Application.onLoad += () =>
             {
-                orig();
-                for (var i = 0; i < registeredAspectAbilities.Count; i++)
+                if (beforeAspectAutoRegister != null) beforeAspectAutoRegister();
+                foreach (var aspect in EliteCatalog.eliteDefs.Where(x => x.eliteEquipmentDef != null).Select(x => x.eliteEquipmentDef).Distinct())
                 {
-                    AspectAbility aspectAbility = registeredAspectAbilities[i];
-                    if (!aspectAbility.autoAppendedToken)
+                    if (FindAspectAbility(aspect) == null)
                     {
-                        aspectAbility.autoAppendedToken = true;
-                        LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
+                        RegisterAspectAbility(aspect, new AspectAbility());
                     }
                 }
             };
         }
 
         internal static List<AspectAbility> registeredAspectAbilities = new List<AspectAbility>();
+        internal static Dictionary<EquipmentDef, AspectAbility> registeredAspectAbilities = new Dictionary<EquipmentDef, AspectAbility>();
         public static AspectAbility FindAspectAbility(EquipmentDef equipmentDef)
         {
-            return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef == equipmentDef);
+            if (registeredAspectAbilities.ContainsKey(equipmentDef)) return registeredAspectAbilities[equipmentDef];
+            return null;
         }
         public static AspectAbility FindAspectAbility(EquipmentIndex equipmentIndex)
         {
-            return registeredAspectAbilities.FirstOrDefault(x => x.equipmentDef ? x.equipmentDef.equipmentIndex == equipmentIndex : false);
+            return FindAspectAbility(EquipmentCatalog.GetEquipmentDef(equipmentIndex));
         }
 
         internal static BaseAI.Target GetAITarget(CharacterMaster characterMaster)
@@ -243,7 +243,7 @@ namespace AspectAbilities
                             c.Emit(OpCodes.Ldarg_2);
                             c.EmitDelegate<System.Func<EquipmentSlot, bool>>((equipmentSlot) =>
                             {
-                                return registeredAspectAbilities.Any(aspectAbility => aspectAbility.equipmentDef.equipmentIndex == equipmentSlot.equipmentIndex) && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
+                                return FindAspectAbility(equipmentSlot.equipmentIndex) != null && equipmentSlot.characterBody.teamComponent.teamIndex != TeamIndex.Player;
                             });
                             c.Emit(OpCodes.Brtrue, label);
                         }
@@ -252,15 +252,14 @@ namespace AspectAbilities
             }
         }
 
-        public static void RegisterAspectAbility(AspectAbility aspectAbility)
+        public static void RegisterAspectAbility(EquipmentDef equipmentDef, AspectAbility aspectAbility)
         {
-            registeredAspectAbilities.Add(aspectAbility);
+            registeredAspectAbilities.Add(equipmentDef, aspectAbility);
         }
     }
 
     public class AspectAbility
     {
-        public EquipmentDef equipmentDef;
         public float aiMaxUseDistance = 60f;
         public AnimationCurve aiHealthFractionToUseChance = new AnimationCurve {
             keys = new Keyframe[]
