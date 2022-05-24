@@ -370,21 +370,14 @@ namespace AspectAbilities
             }
             loadDispatchers = new System.Action[]
             {
-                () =>
-                {
-                    ContentLoadHelper.PopulateTypeFields<BuffDef>(typeof(Buffs), contentPack.buffDefs);
-                    MysticsRisky2Utils.ContentManagement.ContentLoadHelper.AddPrefixToAssets<BuffDef>(contentPack.buffDefs, AspectAbilitiesPlugin.TokenPrefix);
-                },
-                () =>
-                {
-                    contentPack.projectilePrefabs.Add(Resources.projectilePrefabs.ToArray());
-                    contentPack.bodyPrefabs.Add(Resources.bodyPrefabs.ToArray());
-                    contentPack.masterPrefabs.Add(Resources.masterPrefabs.ToArray());
-                    contentPack.effectDefs.Add(Resources.effectPrefabs.ConvertAll(x => new EffectDef(x)).ToArray());
-                    contentPack.entityStateTypes.Add(Resources.entityStateTypes.ToArray());
-                    contentPack.networkSoundEventDefs.Add(Resources.networkSoundEventDefs.ToArray());
-                    contentPack.skillDefs.Add(Resources.skillDefs.ToArray());
-                }
+                () => ContentLoadHelper.PopulateTypeFields<BuffDef>(typeof(Buffs), contentPack.buffDefs),
+                () => contentPack.projectilePrefabs.Add(Resources.projectilePrefabs.ToArray()),
+                () => contentPack.bodyPrefabs.Add(Resources.bodyPrefabs.ToArray()),
+                () => contentPack.masterPrefabs.Add(Resources.masterPrefabs.ToArray()),
+                () => contentPack.effectDefs.Add(Resources.effectPrefabs.ConvertAll(x => new EffectDef(x)).ToArray()),
+                () => contentPack.entityStateTypes.Add(Resources.entityStateTypes.ToArray()),
+                () => contentPack.networkSoundEventDefs.Add(Resources.networkSoundEventDefs.ToArray()),
+                () => contentPack.skillDefs.Add(Resources.skillDefs.ToArray())
             };
             for (int i = 0; i < loadDispatchers.Length; i = num)
             {
