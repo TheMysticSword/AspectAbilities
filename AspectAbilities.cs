@@ -38,6 +38,7 @@ namespace AspectAbilities
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
+        public static ConfigFile config = new ConfigFile(Paths.ConfigPath + "\\TheMysticSword-AspectAbilities.cfg", true);
         public static BepInEx.Logging.ManualLogSource logger;
         public static Assembly executingAssembly;
 
