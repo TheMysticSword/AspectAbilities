@@ -7,35 +7,90 @@ using R2API.Networking;
 using R2API.Networking.Interfaces;
 using UnityEngine.Networking;
 using R2API.Utils;
+using RoR2.Skills;
+using MysticsRisky2Utils;
+using MysticsRisky2Utils.BaseAssetTypes;
 
 namespace AspectAbilities.Buffs
 {
     public class IceCrystalDebuff : BaseBuff
     {
-        public override Sprite LoadSprite(string assetName)
-        {
-            return Resources.Load<Sprite>("Textures/BuffIcons/texBuffPulverizeIcon");
-        }
+        public static SkillDef iceLockedSkillDef;
+
+        public static ConfigOptions.ConfigurableValue<int> lockTimePrimary = ConfigOptions.ConfigurableValue.CreateInt(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Glacial",
+            "Lock Time (Primary)",
+            1,
+            0,
+            60,
+            "How much time should an enemy spend in the crystal's range to get their primary skill locked (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+        public static ConfigOptions.ConfigurableValue<int> lockTimeSecondary = ConfigOptions.ConfigurableValue.CreateInt(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Glacial",
+            "Lock Time (Secondary)",
+            2,
+            0,
+            60,
+            "How much time should an enemy spend in the crystal's range to get their secondary skill locked (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+        public static ConfigOptions.ConfigurableValue<int> lockTimeUtility = ConfigOptions.ConfigurableValue.CreateInt(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Glacial",
+            "Lock Time (Utility)",
+            3,
+            0,
+            60,
+            "How much time should an enemy spend in the crystal's range to get their utility skill locked (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+        public static ConfigOptions.ConfigurableValue<int> lockTimeSpecial = ConfigOptions.ConfigurableValue.CreateInt(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Glacial",
+            "Lock Time (Special)",
+            4,
+            0,
+            60,
+            "How much time should an enemy spend in the crystal's range to get their special skill locked (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+        public static ConfigOptions.ConfigurableValue<bool> gradualDecay = ConfigOptions.ConfigurableValue.CreateBool(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Glacial",
+            "Gradual Debuff Decay",
+            true,
+            "If true, debuff stacks will gradually disappear over the duration of the debuff. Otherwise, all debuff stacks will disappear only once the debuff timer ends.",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
 
         public override void OnLoad()
         {
-            buffDef.name = "IceCrystalDebuff";
+            buffDef.name = "AspectAbilities_IceCrystalDebuff";
             buffDef.buffColor = AffixWhite.iceCrystalColor;
             buffDef.canStack = true;
             buffDef.isDebuff = true;
-
-            On.RoR2.CharacterBody.Awake += (orig, self) =>
-            {
-                orig(self);
-                self.gameObject.AddComponent<AspectAbilitiesCurseCountLast>();
-            };
+            buffDef.iconSprite = AspectAbilitiesPlugin.assetBundle.LoadAsset<Sprite>("Assets/Misc/Textures/texAspectAbilitiesIceDebuff.png");
 
             On.RoR2.CharacterBody.AddTimedBuff_BuffDef_float += (orig, self, buffDef, duration) =>
             {
                 orig(self, buffDef, duration);
-                foreach (CharacterBody.TimedBuff timedBuff in self.timedBuffs.FindAll(x => x.buffIndex == AspectAbilitiesContent.Buffs.IceCrystalDebuff.buffIndex))
+                var stacks = self.timedBuffs.FindAll(x => x.buffIndex == AspectAbilitiesContent.Buffs.AspectAbilities_IceCrystalDebuff.buffIndex);
+                for (var i = 0; i < stacks.Count; i++)
                 {
-                    timedBuff.timer = duration;
+                    stacks[i].timer = duration * (gradualDecay ? ((float)(i + 1) / (float)stacks.Count) : 1f);
                 }
             };
 
@@ -48,107 +103,64 @@ namespace AspectAbilities.Buffs
                 }
             };
 
-            AddCursePenaltyModifier(0.5f);
+            iceLockedSkillDef = ScriptableObject.CreateInstance<SkillDef>();
+            iceLockedSkillDef.skillName = "AspectAbilities_IceLocked";
+            iceLockedSkillDef.skillNameToken = "ASPECTABILITIES_SKILL_ICELOCKED_NAME";
+            iceLockedSkillDef.skillDescriptionToken = "ASPECTABILITIES_SKILL_ICELOCKED_DESCRIPTION";
+            iceLockedSkillDef.icon = AspectAbilitiesPlugin.assetBundle.LoadAsset<Sprite>("Assets/Misc/Textures/texAspectAbilitiesIceLockedSkillIcon.png");
+            iceLockedSkillDef.activationStateMachineName = "Weapon";
+            iceLockedSkillDef.activationState = new EntityStates.SerializableEntityStateType(typeof(EntityStates.Idle));
+            iceLockedSkillDef.interruptPriority = EntityStates.InterruptPriority.Any;
+            iceLockedSkillDef.baseRechargeInterval = 0f;
+            iceLockedSkillDef.baseMaxStock = 0;
+            iceLockedSkillDef.rechargeStock = 0;
+            iceLockedSkillDef.requiredStock = 0;
+            iceLockedSkillDef.stockToConsume = 0;
+            iceLockedSkillDef.resetCooldownTimerOnUse = false;
+            iceLockedSkillDef.fullRestockOnAssign = false;
+            iceLockedSkillDef.dontAllowPastMaxStocks = false;
+            iceLockedSkillDef.beginSkillCooldownOnSkillEnd = false;
+            iceLockedSkillDef.cancelSprintingOnActivation = false;
+            iceLockedSkillDef.forceSprintDuringState = false;
+            iceLockedSkillDef.canceledFromSprinting = false;
+            iceLockedSkillDef.isCombatSkill = false;
+            iceLockedSkillDef.mustKeyPress = true;
 
-            IL.RoR2.CharacterBody.RecalculateStats += (il) =>
-            {
-                ILCursor c = new ILCursor(il);
-                int maxHealthPrevPos = 48;
-                int maxShieldPrevPos = 49;
-                int trueMaxHealthPos = 50;
-                int trueMaxShieldPos = 52;
-                int maxHealthDeltaPos = 80;
-                int maxShieldDeltaPos = 81;
-                // don't regen health when this curse penalty is removed
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("get_maxHealth"),
-                    x => x.MatchLdloc(maxHealthPrevPos),
-                    x => x.MatchSub(),
-                    x => x.MatchStloc(maxHealthDeltaPos)
-                );
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, trueMaxHealthPos);
-                c.Emit(OpCodes.Ldloc, maxHealthDeltaPos);
-                c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
-                {
-                    if (characterBody.healthComponent)
-                    {
-                        AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
-                        float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
-                        if (healthGained > 0)
-                        {
-                            maxHealthDelta -= healthGained;
-                        }
-                        else if (healthGained < 0)
-                        {
-                            float takeDamage = -healthGained * (characterBody.healthComponent.Networkhealth / (trueMaxHealth / (1f + curseCount.value)));
-                            // don't reduce below 1
-                            if (takeDamage > characterBody.healthComponent.Networkhealth)
-                            {
-                                takeDamage = characterBody.healthComponent.Networkhealth - 1f;
-                            }
-                            if (takeDamage > 0) characterBody.healthComponent.Networkhealth -= takeDamage;
-                        }
-                    }
-                    return maxHealthDelta;
-                });
-                c.Emit(OpCodes.Stloc, maxHealthDeltaPos);
-                // do the same with shields
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallOrCallvirt<CharacterBody>("get_maxShield"),
-                    x => x.MatchLdloc(maxShieldPrevPos),
-                    x => x.MatchSub(),
-                    x => x.MatchStloc(maxShieldDeltaPos)
-                );
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, trueMaxShieldPos);
-                c.Emit(OpCodes.Ldloc, maxShieldDeltaPos);
-                c.EmitDelegate<System.Func<CharacterBody, float, float, float>>((characterBody, trueMaxHealth, maxHealthDelta) =>
-                {
-                    if (characterBody.healthComponent)
-                    {
-                        AspectAbilitiesCurseCountLast curseCount = characterBody.GetComponent<AspectAbilitiesCurseCountLast>();
-                        float healthGained = (trueMaxHealth / (1f + GetCurrent(characterBody))) - (trueMaxHealth / (1f + curseCount.value));
-                        if (healthGained > 0)
-                        {
-                            maxHealthDelta -= healthGained;
-                        }
-                        else if (healthGained < 0)
-                        {
-                            float takeDamage = -healthGained * (characterBody.healthComponent.Networkshield / (trueMaxHealth / (1f + curseCount.value)));
-                            // don't reduce below 1
-                            if (takeDamage > characterBody.healthComponent.Networkshield)
-                            {
-                                takeDamage = characterBody.healthComponent.Networkshield - 1f;
-                            }
-                            if (takeDamage > 0) characterBody.healthComponent.Networkshield -= takeDamage;
-                        }
-                    }
-                    return maxHealthDelta;
-                });
-                c.Emit(OpCodes.Stloc, maxShieldDeltaPos);
-            };
-            On.RoR2.CharacterBody.RecalculateStats += (orig, self) =>
-            {
-                orig(self);
-                AspectAbilitiesCurseCountLast curseCount = self.GetComponent<AspectAbilitiesCurseCountLast>();
-                curseCount.value = GetCurrent(self);
-            };
+            AspectAbilitiesContent.Resources.skillDefs.Add(iceLockedSkillDef);
+
+            RecalculateStatsAPI.GetStatCoefficients += RecalculateStatsAPI_GetStatCoefficients;
         }
 
-        public static float GetCurrent(CharacterBody characterBody)
+        private void RecalculateStatsAPI_GetStatCoefficients(CharacterBody sender, RecalculateStatsAPI.StatHookEventArgs args)
         {
-            BuffDef buffDef = AspectAbilitiesContent.Buffs.IceCrystalDebuff;
-            return characterBody.HasBuff(buffDef) ? characterBody.GetBuffCount(buffDef) * 0.5f : 0f;
-        }
-
-        public class AspectAbilitiesCurseCountLast : NetworkBehaviour
-        {
-            public float value = 0f;
+            if (sender.skillLocator.primary)
+            {
+                if (sender.GetBuffCount(buffDef) >= lockTimePrimary)
+                    sender.skillLocator.primary.SetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+                else
+                    sender.skillLocator.primary.UnsetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+            }
+            if (sender.skillLocator.secondary)
+            {
+                if (sender.GetBuffCount(buffDef) >= lockTimeSecondary)
+                    sender.skillLocator.secondary.SetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+                else
+                    sender.skillLocator.secondary.UnsetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+            }
+            if (sender.skillLocator.utility)
+            {
+                if (sender.GetBuffCount(buffDef) >= lockTimeUtility)
+                    sender.skillLocator.utility.SetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+                else
+                    sender.skillLocator.utility.UnsetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+            }
+            if (sender.skillLocator.special)
+            {
+                if (sender.GetBuffCount(buffDef) >= lockTimeSpecial)
+                    sender.skillLocator.special.SetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+                else
+                    sender.skillLocator.special.UnsetSkillOverride(sender, iceLockedSkillDef, GenericSkill.SkillOverridePriority.Replacement);
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using R2API.Networking.Interfaces;
 using R2API.Networking;
+using MysticsRisky2Utils;
 
 namespace AspectAbilities
 {
@@ -14,33 +15,91 @@ namespace AspectAbilities
         public static GameObject malachiteUrchinOrbitalMaster;
         public static GameObject malachiteUrchinOrbitalBody;
 
+        public static ConfigOptions.ConfigurableValue<int> maxUrchins = ConfigOptions.ConfigurableValue.CreateInt(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Malachite",
+            "Max Urchins",
+            1,
+            0,
+            10,
+            "Maximum amount of urchins that a single character can have active at once",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+        public static ConfigOptions.ConfigurableValue<bool> scaleMaxUrchinCountWithBodySize = ConfigOptions.ConfigurableValue.CreateBool(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Malachite",
+            "Scale Count With Body Size",
+            true,
+            "If true, larger characters can have more urchins active at once",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+        public static ConfigOptions.ConfigurableValue<int> lifetime = ConfigOptions.ConfigurableValue.CreateInt(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Malachite",
+            "Lifetime",
+            45,
+            0,
+            180,
+            "How long should the urchins live (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+
         public override void OnPluginAwake()
         {
-            // clone the body and the master in case we want to change the stats of the urchins
-            malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster");
-            malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(Resources.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody");
-
             NetworkingAPI.RegisterMessageType<MalachiteOrbitalUrchin.SyncInit>();
             NetworkingAPI.RegisterMessageType<MalachiteOrbitalUrchin.RequestSyncInit>();
         }
 
         public override void OnLoad()
         {
-            On.RoR2.EquipmentCatalog.Init += (orig) =>
-            {
-                orig();
-                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixPoison;
-                aspectAbility.equipmentDef.cooldown = 90f;
-                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
-                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
-            };
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Malachite", RoR2Content.Equipment.AffixPoison, 90f));
 
+            malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(LegacyResourcesAPI.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster", false);
+
+            malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(LegacyResourcesAPI.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody", false);
             CharacterBody body = malachiteUrchinOrbitalBody.GetComponent<CharacterBody>();
-            float statBoost = 3f;
-            body.baseMaxHealth *= statBoost;
-            body.levelMaxHealth *= statBoost;
-            body.baseDamage *= statBoost;
-            body.levelDamage *= statBoost;
+            Object.DestroyImmediate(body.GetComponent<NetworkStateMachine>());
+            body.gameObject.AddComponent<NetworkStateMachine>().stateMachines = body.GetComponents<EntityStateMachine>();
+            ConfigOptions.ConfigurableValue.CreateFloat(
+                AspectAbilitiesPlugin.PluginGUID,
+                AspectAbilitiesPlugin.PluginName,
+                AspectAbilitiesPlugin.config,
+                "Malachite",
+                "Urchin Base Max Health",
+                750f,
+                0f,
+                1000000f,
+                "Base max HP of the ally Malachite Urchin. For reference, urchins spawned by Malachite enemies on death have 250 base HP.",
+                useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry,
+                onChanged: (newValue) =>
+                {
+                    body.baseMaxHealth = newValue;
+                    body.PerformAutoCalculateLevelStats();
+                }
+            );
+            ConfigOptions.ConfigurableValue.CreateFloat(
+                AspectAbilitiesPlugin.PluginGUID,
+                AspectAbilitiesPlugin.PluginName,
+                AspectAbilitiesPlugin.config,
+                "Malachite",
+                "Urchin Base Damage",
+                18,
+                0f,
+                1000000f,
+                "Base damage of the ally Malachite Urchin. For reference, urchins spawned by Malachite enemies on death have 18 base damage.",
+                useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry,
+                onChanged: (newValue) =>
+                {
+                    body.baseDamage = newValue;
+                    body.PerformAutoCalculateLevelStats();
+                }
+            );
             malachiteUrchinOrbitalMaster.GetComponent<CharacterMaster>().bodyPrefab = malachiteUrchinOrbitalBody;
             malachiteUrchinOrbitalMaster.AddComponent<MalachiteOrbitalUrchin>();
 
@@ -75,8 +134,8 @@ namespace AspectAbilities
             {
                 get
                 {
-                    int _totalNormal = 1;
-                    if (characterBody) _totalNormal += (int)(characterBody.radius / 3);
+                    int _totalNormal = maxUrchins;
+                    if (scaleMaxUrchinCountWithBodySize && characterBody) _totalNormal += (int)(characterBody.radius / 3);
                     return _totalNormal;
                 }
             }
@@ -154,7 +213,7 @@ namespace AspectAbilities
                                     inventory.CopyItemsFrom(characterBody.inventory);
                                     inventory.ResetItem(RoR2Content.Items.BoostHp); // don't boost stats from elite owners
                                     inventory.ResetItem(RoR2Content.Items.BoostDamage);
-                                    inventory.GiveItem(RoR2Content.Items.HealthDecay, 45);
+                                    inventory.GiveItem(RoR2Content.Items.HealthDecay, lifetime);
                                 }
                             }
                         }.Perform();

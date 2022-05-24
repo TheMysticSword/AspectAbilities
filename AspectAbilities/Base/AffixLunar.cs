@@ -2,6 +2,7 @@ using UnityEngine;
 using RoR2;
 using RoR2.Audio;
 using UnityEngine.Networking;
+using MysticsRisky2Utils;
 
 namespace AspectAbilities
 {
@@ -11,16 +12,22 @@ namespace AspectAbilities
         public static NetworkSoundEventDef shellUseSound;
         public static Material shellMaterial;
 
+        public static ConfigOptions.ConfigurableValue<float> buffDuration = ConfigOptions.ConfigurableValue.CreateFloat(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Perfected",
+            "Buff Duration",
+            15f,
+            0f,
+            120f,
+            "How long should the buff last (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+
         public override void OnLoad()
         {
-            On.RoR2.EquipmentCatalog.Init += (orig) =>
-            {
-                orig();
-                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixLunar;
-                aspectAbility.equipmentDef.cooldown = 45f;
-                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
-                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
-            };
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Perfected", RoR2Content.Equipment.AffixLunar, 45f));
 
             shellPrepSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();
             shellPrepSound.eventName = "Play_lunar_golem_attack2_buildUp";
@@ -38,7 +45,7 @@ namespace AspectAbilities
                     rotation = Quaternion.Euler(self.characterBody.inputBank.aimDirection)
                 };
                 effectData.SetHurtBoxReference(self.characterBody.mainHurtBox);
-                EffectManager.SpawnEffect(Resources.Load<GameObject>("Prefabs/Effects/LunarGolemShieldCharge"), effectData, true);
+                EffectManager.SpawnEffect(LegacyResourcesAPI.Load<GameObject>("Prefabs/Effects/LunarGolemShieldCharge"), effectData, true);
                 EntitySoundManager.EmitSoundServer(shellPrepSound.index, self.characterBody.networkIdentity);
                 AspectAbilitiesAffixLunar component = GetAffixComponent(self.characterBody.gameObject);
                 component.activate = true;
@@ -76,7 +83,7 @@ namespace AspectAbilities
                     {
                         activate = false;
                         EntitySoundManager.EmitSoundServer(shellUseSound.index, body.networkIdentity);
-                        body.AddTimedBuff(AspectAbilitiesContent.Buffs.AltLunarShell, 15f);
+                        body.AddTimedBuff(AspectAbilitiesContent.Buffs.AspectAbilities_AltLunarShell, buffDuration);
                     }
                 }
             }

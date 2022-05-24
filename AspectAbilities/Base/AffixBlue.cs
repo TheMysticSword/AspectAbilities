@@ -8,22 +8,28 @@ using R2API.Utils;
 using System.Linq;
 using RoR2.CharacterAI;
 using System.Collections.Generic;
+using MysticsRisky2Utils;
 
 namespace AspectAbilities
 {
     public class AffixBlue : BaseAspectAbilityOverride
     {
+        public static ConfigOptions.ConfigurableValue<float> teleportDuration = ConfigOptions.ConfigurableValue.CreateFloat(
+            AspectAbilitiesPlugin.PluginGUID,
+            AspectAbilitiesPlugin.PluginName,
+            AspectAbilitiesPlugin.config,
+            "Overloading",
+            "Teleport Duration",
+            0.3f,
+            0f,
+            1000f,
+            "How long should the teleport take (in seconds)",
+            useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
+        );
+
         public override void OnLoad()
         {
-            On.RoR2.EquipmentCatalog.Init += (orig) =>
-            {
-                orig();
-                aspectAbility.equipmentDef = RoR2Content.Equipment.AffixBlue;
-                aspectAbility.equipmentDef.cooldown = 15f;
-                LanguageManager.appendTokens.Add(aspectAbility.equipmentDef.pickupToken);
-                AspectAbilitiesPlugin.registeredAspectAbilities.Add(aspectAbility);
-            };
-            aspectAbility.aiMaxUseDistance = Mathf.Infinity;
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Overloading", RoR2Content.Equipment.AffixBlue, 7f, 1000f));
 
             NetworkingAPI.RegisterMessageType<OverloadingBlinkController.SyncFire>();
 
@@ -123,7 +129,10 @@ namespace AspectAbilities
             public HurtBoxGroup hurtBoxGroup;
             public CharacterMotor characterMotor;
             public float timer = 0f;
-            public float timerMax = 0.3f;
+            public float timerMax
+            {
+                get { return teleportDuration; }
+            }
             public float blinkEffectTimer = 0f;
             public float blinkEffectTimerMax = 0.3f;
             public Vector3 startPosition;
@@ -258,7 +267,7 @@ namespace AspectAbilities
                     TemporaryOverlay temporaryOverlay = modelTransform.gameObject.AddComponent<TemporaryOverlay>();
                     temporaryOverlay.duration = 1f;
                     temporaryOverlay.destroyComponentOnEnd = true;
-                    temporaryOverlay.originalMaterial = Resources.Load<Material>("Materials/matHuntressFlashExpanded");
+                    temporaryOverlay.originalMaterial = LegacyResourcesAPI.Load<Material>("Materials/matHuntressFlashExpanded");
                     temporaryOverlay.inspectorCharacterModel = modelTransform.gameObject.GetComponent<CharacterModel>();
                     temporaryOverlay.alphaCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
                     temporaryOverlay.animateShaderAlpha = true;
