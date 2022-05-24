@@ -1,6 +1,6 @@
 {
   "name": "AspectAbilities",
-  "version_number": "1.4.11",
+  "version_number": "2.0.0",
   "website_url": "https://github.com/TheMysticSword/AspectAbilities",
   "description": "Adds on-use effects to elite aspects",
   "dependencies": [

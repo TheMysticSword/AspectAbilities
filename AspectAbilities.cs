@@ -35,7 +35,7 @@ namespace AspectAbilities
     {
         public const string PluginGUID = "com.themysticsword.aspectabilities";
         public const string PluginName = "AspectAbilities";
-        public const string PluginVersion = "1.4.11";
+        public const string PluginVersion = "2.0.0";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
