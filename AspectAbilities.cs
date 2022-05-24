@@ -42,9 +42,6 @@ namespace AspectAbilities
         public static BepInEx.Logging.ManualLogSource logger;
         public static Assembly executingAssembly;
 
-        public const string TokenPrefix = PluginName + "_";
-
-        public static bool starstorm2Loaded = false;
 
         public void Awake()
         {
