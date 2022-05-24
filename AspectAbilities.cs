@@ -348,7 +348,7 @@ namespace AspectAbilities
             {
                 () =>
                 {
-                    contentLoadHelper.DispatchLoad<BuffDef>(AspectAbilitiesPlugin.executingAssembly, typeof(AspectAbilities.Buffs.BaseBuff), x => contentPack.buffDefs.Add(x));
+                    contentLoadHelper.DispatchLoad<BuffDef>(AspectAbilitiesPlugin.executingAssembly, typeof(MysticsRisky2Utils.BaseAssetTypes.BaseBuff), x => contentPack.buffDefs.Add(x));
                 },
                 () =>
                 {
