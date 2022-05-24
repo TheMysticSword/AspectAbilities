@@ -31,7 +31,7 @@ Can be configured to allow enemies to use aspects as well.
 ![Mending ability preview. Mending REX with many green crosses coming out of it.](https://i.imgur.com/yBvKJ4d.png)
 
 ---
-###### Voidtouched (DLC1) - reset your ability and buff cooldowns (45s)
+###### Voidtouched (DLC1) - reset your ability and buff cooldowns (7s)
 ![Voidtouched ability preview. Voidtouched Void Fiend firing two plasma missiles in a row instead of only one.](https://i.imgur.com/Aqt4xIF.png)
 
 ---
