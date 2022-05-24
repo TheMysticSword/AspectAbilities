@@ -407,9 +407,10 @@ namespace AspectAbilities
 
         public static class Buffs
         {
-            public static BuffDef AltLunarShell;
-            public static BuffDef IceCrystalDebuff;
-            public static BuffDef StarstormVoidLocked;
+            public static BuffDef AspectAbilities_AltLunarShell;
+            public static BuffDef AspectAbilities_EarthRegen;
+            public static BuffDef AspectAbilities_HauntedDodge;
+            public static BuffDef AspectAbilities_IceCrystalDebuff;
         }
 
         public static class Resources
