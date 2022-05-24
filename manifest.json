@@ -4,9 +4,9 @@
   "website_url": "https://github.com/TheMysticSword/AspectAbilities",
   "description": "Adds on-use effects to elite aspects",
   "dependencies": [
-    "bbepis-BepInExPack-5.4.9",
-    "tristanmcpherson-R2API-3.0.30",
-    "RiskofThunder-HookGenPatcher-1.2.1",
-    "TheMysticSword-MysticsRisky2Utils-1.0.0"
+    "bbepis-BepInExPack-5.4.1905",
+    "tristanmcpherson-R2API-4.3.21",
+    "RiskofThunder-HookGenPatcher-1.2.3",
+    "TheMysticSword-MysticsRisky2Utils-2.0.5"
   ]
 }
