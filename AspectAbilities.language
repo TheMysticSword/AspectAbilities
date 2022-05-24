@@ -1,30 +1,32 @@
 {
   "strings": {
-    "ASPECTABILITIES_EQUIPMENT_AFFIXRED_PICKUP": "Release a barrage of seeking flame missiles on use.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXBLUE_PICKUP": "Teleport on use.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXWHITE_PICKUP": "Deploy a health-reducing ice crystal on use.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXPOISON_PICKUP": "Summon an ally Malachite Urchin on use. Inherits your items.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXHAUNTED_PICKUP": "Heal all allies inside the invisibility aura on use.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXLUNAR_PICKUP": "Gain temporary defense from powerful attacks on use.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXVOID_PICKUP": "Temporarily lock the primary skill of enemies inside the slowing aura on use.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXRED_PICKUP": "{0} On use, launch a seeking fire missile.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXBLUE_PICKUP": "{0} On use, teleport to where you are looking.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXWHITE_PICKUP": "{0} On use, deploy an ice crystal that disables skills of enemies in its range.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXPOISON_PICKUP": "{0} On use, summon an ally Malachite Urchin that inherits your items.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXHAUNTED_PICKUP": "{0} On use, grant temporary dodge chance to all allies inside the invisibility aura.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXLUNAR_PICKUP": "{0} On use, gain temporary defense from single-hit powerful attacks.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXEARTH_PICKUP": "{0} On use, regenerate your health.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXVOID_PICKUP": "{0} On use, reset all of your cooldowns.",
 
     "ASPECTABILITIES_ICECRYSTAL_BODY_NAME": "Ice Crystal",
 
-    "ASPECTABILITIES_SKILL_VOIDLOCKED_NAME": "Disarmed",
-    "ASPECTABILITIES_SKILL_VOIDLOCKED_DESCRIPTION": "Cannot use the primary skill."
+    "ASPECTABILITIES_SKILL_ICELOCKED_NAME": "Frostbite",
+    "ASPECTABILITIES_SKILL_ICELOCKED_DESCRIPTION": "Cannot use this skill."
   },
   "RU": {
-    "ASPECTABILITIES_EQUIPMENT_AFFIXRED_PICKUP": "При использовании выпускает самонаводящиеся огненные ракеты.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXBLUE_PICKUP": "Телепортирует при использовании.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXWHITE_PICKUP": "При использовании создает ледяной кристалл, снижающий здоровье врагов.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXPOISON_PICKUP": "Призывает союзного Малахитового ежа при использовании. Наследует ваши предметы.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXHAUNTED_PICKUP": "Восполняет здоровье всех союзников в ауре невидимости при использовании.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXLUNAR_PICKUP": "Даёт временную защиту от сильных атак при использовании.",
-    "ASPECTABILITIES_EQUIPMENT_AFFIXVOID_PICKUP": "При использовании временно блокирует основной навык врагов в ауре замедления.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXRED_PICKUP": "При использовании выпускает самонаводящуюся огненную ракету.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXBLUE_PICKUP": "При использовании телепортирует туда, куда вы смотрите.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXWHITE_PICKUP": "При использовании создает ледяной кристалл, отключающий навыки врагов в его радиусе.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXPOISON_PICKUP": "При использовании призывает союзного Малахитового ежа, наследующего ваши предметы.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXHAUNTED_PICKUP": "При использовании даёт временный шанс уклонения всем союзникам в ауре невидимости.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXLUNAR_PICKUP": "При использовании даёт временную защиту от одиночных сильных атак.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXEARTH_PICKUP": "При использовании восстанавливает ваше здоровье.",
+    "ASPECTABILITIES_EQUIPMENT_AFFIXVOID_PICKUP": "При использовании сбрасывает ваши таймеры восстановления.",
 
     "ASPECTABILITIES_ICECRYSTAL_BODY_NAME": "Ледяной кристалл",
 
-    "ASPECTABILITIES_SKILL_VOIDLOCKED_NAME": "Разоружение",
-    "ASPECTABILITIES_SKILL_VOIDLOCKED_DESCRIPTION": "Нельзя применить основной навык."
+    "ASPECTABILITIES_SKILL_ICELOCKED_NAME": "Обморожение",
+    "ASPECTABILITIES_SKILL_ICELOCKED_DESCRIPTION": "Нельзя применить навык."
   }
 }
