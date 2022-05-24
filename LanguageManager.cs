@@ -1,4 +1,3 @@
-using R2API;
 using RoR2;
 using System.Collections.Generic;
 
@@ -16,7 +15,7 @@ namespace AspectAbilities
             string result = orig(self, token);
             if (appendTokens.Contains(token))
             {
-                result = string.Format("{0} {1}", result, self.GetLocalizedStringByToken("ASPECTABILITIES_" + token));
+                result = self.GetLocalizedFormattedStringByToken("ASPECTABILITIES_" + token, result);
             }
             return result;
         }
