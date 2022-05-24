@@ -19,6 +19,7 @@ using System.Collections;
 using RoR2.Skills;
 using MysticsRisky2Utils;
 using System.Reflection;
+using BepInEx.Configuration;
 
 [module: UnverifiableCode]
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -44,6 +45,58 @@ namespace AspectAbilities
 
         public static AssetBundle assetBundle;
 
+        public static ConfigOptions.ConfigurableValue<bool> ignoreBalanceChanges = ConfigOptions.ConfigurableValue.CreateBool(
+            PluginGUID,
+            PluginName,
+            config,
+            "General",
+            "Ignore Balance Changes",
+            true,
+            "If true, the mod will use default recommended values for mod balance. Otherwise, the mod will use your preferred values."
+        );
+
+        public static ConfigOptions.ConfigurableValue<bool> enemiesCanUseAspects = ConfigOptions.ConfigurableValue.CreateBool(
+            PluginGUID,
+            PluginName,
+            config,
+            "Enemy Aspect Usage",
+            "Enable",
+            false,
+            "Let enemies use aspects?"
+        );
+        public static ConfigOptions.ConfigurableValue<int> enemyStageRequirementDrizzle = ConfigOptions.ConfigurableValue.CreateInt(
+            PluginGUID,
+            PluginName,
+            config,
+            "Enemy Aspect Usage",
+            "Stage Requirement (Drizzle)",
+            6,
+            0,
+            1000,
+            "Enemies can use aspects beginning from this stage on Drizzle difficulty and below."
+        );
+        public static ConfigOptions.ConfigurableValue<int> enemyStageRequirementRainstorm = ConfigOptions.ConfigurableValue.CreateInt(
+            PluginGUID,
+            PluginName,
+            config,
+            "Enemy Aspect Usage",
+            "Stage Requirement (Rainstorm)",
+            3,
+            0,
+            1000,
+            "Enemies can use aspects beginning from this stage on Rainstorm difficulty and other difficulties between Drizzle and Monsoon."
+        );
+        public static ConfigOptions.ConfigurableValue<int> enemyStageRequirementMonsoon = ConfigOptions.ConfigurableValue.CreateInt(
+            PluginGUID,
+            PluginName,
+            config,
+            "Enemy Aspect Usage",
+            "Stage Requirement (Monsoon)",
+            1,
+            0,
+            1000,
+            "Enemies can use aspects beginning from this stage on Monsoon difficulty and above."
+        );
 
         public void Awake()
         {
@@ -60,47 +113,7 @@ namespace AspectAbilities
             // make elites auto-use equipment
             On.RoR2.CharacterBody.FixedUpdate += (orig, self) =>
             {
-                if (self.equipmentSlot && self.equipmentSlot.stock > 0 && Run.instance.stageClearCount >= 15 - 5 * DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue && self.inputBank && !self.isPlayerControlled)
-                {
-                    AspectAbility aspectAbility = FindAspectAbility(self.equipmentSlot.equipmentIndex);
-                    if (aspectAbility != null)
-                    {
-                        AspectAbilitiesBodyFields bodyFields = self.GetComponent<AspectAbilitiesBodyFields>();
-                        if (bodyFields && bodyFields.aiCanUse)
-                        {
-                            bodyFields.aiCanUse = false;
-
-                            bool spawning = false;
-                            EntityStateMachine[] stateMachines = self.gameObject.GetComponents<EntityStateMachine>();
-                            foreach (EntityStateMachine stateMachine in stateMachines)
-                            {
-                                if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
-                                {
-                                    spawning = true;
-                                    break;
-                                }
-                            }
-
-                            bool enemyNearby = false;
-                            if (aspectAbility.aiMaxUseDistance == Mathf.Infinity) enemyNearby = true;
-                            else if (aspectAbility.aiMaxUseDistance <= 0f) enemyNearby = false;
-                            else if (self.master)
-                            {
-                                BaseAI[] aiComponents = self.master.GetFieldValue<BaseAI[]>("aiComponents");
-                                foreach (BaseAI ai in aiComponents)
-                                {
-                                    if (ai.currentEnemy.bestHurtBox && Vector3.Distance(self.corePosition, ai.currentEnemy.bestHurtBox.transform.position) <= aspectAbility.aiMaxUseDistance)
-                                    {
-                                        enemyNearby = true;
-                                    }
-                                }
-                            }
-
-                            float randomChance = aspectAbility.aiHealthFractionToUseChance.Evaluate(1f - (self.healthComponent ? self.healthComponent.combinedHealthFraction : 1f)) * 100f;
-                            if (!spawning && Util.CheckRoll(randomChance) && enemyNearby) self.inputBank.activateEquipment.PushState(true);
-                        }
-                    }
-                }
+                TryUseAspect(self);
                 orig(self);
             };
             // make enigma artifact not reroll aspects
@@ -172,7 +185,59 @@ namespace AspectAbilities
             };
         }
 
-        internal static List<AspectAbility> registeredAspectAbilities = new List<AspectAbility>();
+        public static System.Action beforeAspectAutoRegister;
+
+        public static void TryUseAspect(CharacterBody body)
+        {
+            if (enemiesCanUseAspects)
+            {
+                if (body.equipmentSlot && body.equipmentSlot.stock > 0 && body.inputBank && !body.isPlayerControlled)
+                {
+                    var difficulty = DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue;
+                    var stage = Run.instance.stageClearCount + 1;
+                    if (difficulty <= 1f && stage < enemyStageRequirementDrizzle) return;
+                    else if (difficulty > 1f && difficulty < 3f && stage < enemyStageRequirementRainstorm) return;
+                    else if (difficulty >= 3f && stage < enemyStageRequirementMonsoon) return;
+
+                    AspectAbility aspectAbility = FindAspectAbility(body.equipmentSlot.equipmentIndex);
+                    if (aspectAbility != null)
+                    {
+                        AspectAbilitiesBodyFields bodyFields = body.GetComponent<AspectAbilitiesBodyFields>();
+                        if (bodyFields && bodyFields.aiCanUse)
+                        {
+                            bodyFields.aiCanUse = false;
+
+                            EntityStateMachine[] stateMachines = body.gameObject.GetComponents<EntityStateMachine>();
+                            foreach (EntityStateMachine stateMachine in stateMachines)
+                            {
+                                if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
+                                {
+                                    return;
+                                }
+                            }
+
+                            if (aspectAbility.aiMaxUseDistance <= 0f) return;
+                            if (aspectAbility.aiMaxUseDistance != Mathf.Infinity && body.master)
+                            {
+                                BaseAI[] aiComponents = body.master.aiComponents;
+                                foreach (BaseAI ai in aiComponents)
+                                {
+                                    if (ai.currentEnemy.bestHurtBox && Vector3.Distance(body.corePosition, ai.currentEnemy.bestHurtBox.transform.position) > aspectAbility.aiMaxUseDistance)
+                                    {
+                                        return;
+                                    }
+                                }
+                            }
+
+                            if (body.healthComponent && body.healthComponent.combinedHealthFraction > aspectAbility.aiMaxUseHealthFraction) return;
+                            
+                            body.inputBank.activateEquipment.PushState(true);
+                        }
+                    }
+                }
+            }
+        }
+
         internal static Dictionary<EquipmentDef, AspectAbility> registeredAspectAbilities = new Dictionary<EquipmentDef, AspectAbility>();
         public static AspectAbility FindAspectAbility(EquipmentDef equipmentDef)
         {
@@ -186,7 +251,7 @@ namespace AspectAbilities
 
         internal static BaseAI.Target GetAITarget(CharacterMaster characterMaster)
         {
-            BaseAI[] aiComponents = characterMaster.GetFieldValue<BaseAI[]>("aiComponents");
+            BaseAI[] aiComponents = characterMaster.aiComponents;
             List<BaseAI.Target> targets = new List<BaseAI.Target>();
             foreach (BaseAI ai in aiComponents)
             {
@@ -261,18 +326,8 @@ namespace AspectAbilities
     public class AspectAbility
     {
         public float aiMaxUseDistance = 60f;
-        public AnimationCurve aiHealthFractionToUseChance = new AnimationCurve {
-            keys = new Keyframe[]
-            {
-                new Keyframe(0f, 0f, 0f, Mathf.Tan(45f * Mathf.Deg2Rad)),
-                new Keyframe(0.5f, 1f, Mathf.Tan(-45f * Mathf.Deg2Rad), 0f),
-                new Keyframe(1f, 1f, 0f, 0f)
-            },
-            preWrapMode = WrapMode.Clamp,
-            postWrapMode = WrapMode.Clamp
-        };
+        public float aiMaxUseHealthFraction = 0.5f;
         public System.Func<EquipmentSlot, bool> onUseOverride;
-        public bool autoAppendedToken;
     }
 
     public class AspectAbilitiesContent : IContentPackProvider
