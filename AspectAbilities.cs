@@ -32,7 +32,7 @@ namespace AspectAbilities
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(NetworkingAPI), nameof(PrefabAPI))]
     public class AspectAbilitiesPlugin : BaseUnityPlugin
     {
-        public const string PluginGUID = "com.TheMysticSword.AspectAbilities";
+        public const string PluginGUID = "com.themysticsword.aspectabilities";
         public const string PluginName = "AspectAbilities";
         public const string PluginVersion = "1.4.11";
 
