@@ -13,7 +13,7 @@ namespace AspectAbilities.Buffs
             AspectAbilitiesPlugin.PluginGUID,
             AspectAbilitiesPlugin.PluginName,
             AspectAbilitiesPlugin.config,
-            "Mending",
+            "Mending (DLC1)",
             "Regen",
             12.5f,
             0f,
