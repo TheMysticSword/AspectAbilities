@@ -104,7 +104,7 @@ namespace AspectAbilities
             executingAssembly = Assembly.GetExecutingAssembly();
 
             assetBundle = AssetBundle.LoadFromFile(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Info.Location), "aspectabilitiesassetbundle"));
-            MysticsRisky2Utils.SoftDependencies.SoftDependencyManager.RiskOfOptionsDependency.RegisterModInfo(PluginGUID, PluginName, "Adds on-use abilities to elite aspects", assetBundle.LoadAsset<Sprite>("Assets/Misc/Textures/texModIconAspectAbilities.png"));
+            MysticsRisky2Utils.SoftDependencies.SoftDependencyManager.RiskOfOptionsDependency.RegisterModInfo(PluginGUID, PluginName, "Adds on-use abilities to elite aspects", assetBundle.LoadAsset<Sprite>("Assets/Mod Icons/AspectAbilities.png"));
 
             LanguageManager.Init();
 
