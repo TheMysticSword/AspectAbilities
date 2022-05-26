@@ -27,10 +27,14 @@ namespace AspectAbilities
             useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry
         );
 
+        public override void OnPluginAwake()
+        {
+            base.OnPluginAwake();
+            NetworkingAPI.RegisterMessageType<OverloadingBlinkController.SyncFire>();
+        }
+
         public override void OnLoad()
         {
-            NetworkingAPI.RegisterMessageType<OverloadingBlinkController.SyncFire>();
-
             On.RoR2.CharacterBody.Awake += (orig, self) =>
             {
                 orig(self);
