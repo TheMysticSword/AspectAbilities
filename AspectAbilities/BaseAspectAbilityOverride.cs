@@ -17,7 +17,7 @@ namespace AspectAbilities
             asset = aspectAbility;
         }
 
-        public void Setup(string optionsSection, EquipmentDef equipmentDef, float cooldown, float aiMaxUseDistance = 60f, float aiMaxUseHealthFraction = 0.5f)
+        public void Setup(string optionsSection, EquipmentDef equipmentDef, float cooldown, float aiMaxUseDistance = 60f, float aiMaxUseHealthFraction = 0.5f, System.Func<EquipmentSlot, bool> onUseOverride = null)
         {
             AspectAbilitiesPlugin.RegisterAspectAbility(equipmentDef, aspectAbility);
             ConfigOptions.ConfigurableValue.CreateFloat(
@@ -97,6 +97,14 @@ namespace AspectAbilities
                     aspectAbility.aiMaxUseHealthFraction = newValue / 100f;
                 }
             );
+            On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
+            {
+                if (equipmentDef2 == equipmentDef)
+                {
+                    return onUseOverride(self);
+                }
+                return orig(self, equipmentDef2);
+            };
         }
     }
 }

@@ -30,16 +30,14 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Mending (DLC1)", Addressables.LoadAssetAsync<EquipmentDef>("RoR2/DLC1/EliteEarth/EliteEarthEquipment.asset").WaitForCompletion(), 30f, 1000f));
-
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Mending (DLC1)", Addressables.LoadAssetAsync<EquipmentDef>("RoR2/DLC1/EliteEarth/EliteEarthEquipment.asset").WaitForCompletion(), 30f, 1000f, onUseOverride: (self) =>
             {
                 if (self.characterBody)
                 {
                     self.characterBody.AddTimedBuff(AspectAbilitiesContent.Buffs.AspectAbilities_EarthRegen, duration);
                 }
                 return true;
-            };
+            }));
         }
 
         public static AspectAbilitiesAffixEarth GetAffixComponent(GameObject obj)

@@ -8,9 +8,7 @@ namespace AspectAbilities
     {
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Voidtouched (DLC1)", DLC1Content.Equipment.EliteVoidEquipment, 7f));
-
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Voidtouched (DLC1)", DLC1Content.Equipment.EliteVoidEquipment, 7f, onUseOverride: (self) =>
             {
                 if (self.characterBody)
                 {
@@ -24,7 +22,7 @@ namespace AspectAbilities
                     }, true);
                 }
                 return true;
-            };
+            }));
         }
     }
 }

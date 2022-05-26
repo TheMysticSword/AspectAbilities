@@ -43,8 +43,6 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Celestine", RoR2Content.Equipment.AffixHaunted, 45f));
-
             remapHealingToHauntedTexture = new Texture2D(256, 16, TextureFormat.ARGB32, false);
             remapHealingToHauntedTexture.wrapMode = TextureWrapMode.Clamp;
             remapHealingToHauntedTexture.filterMode = FilterMode.Bilinear;
@@ -72,7 +70,7 @@ namespace AspectAbilities
                 BuffPulseController.displayedEffectPrefab = vfx;
             }
 
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Celestine", RoR2Content.Equipment.AffixHaunted, 45f, onUseOverride: (self) =>
             {
                 // give allies dodge chance
                 GameObject affixHauntedWard = self.characterBody.GetComponent<CharacterBody.AffixHauntedBehavior>().affixHauntedWard;
@@ -85,7 +83,7 @@ namespace AspectAbilities
                     healPulseController.Fire(self.characterBody.corePosition, affixHauntedWard.GetComponent<BuffWard>().radius, 0.66f, AspectAbilitiesContent.Buffs.AspectAbilities_HauntedDodge.buffIndex, buffDuration, self.characterBody.teamComponent.teamIndex);
                 }
                 return true;
-            };
+            }));
         }
 
         public class BuffPulseController : NetworkBehaviour

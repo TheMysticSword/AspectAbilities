@@ -155,16 +155,6 @@ namespace AspectAbilities
                 addContentPackProvider(new AspectAbilitiesContent());
             };
 
-            On.RoR2.EquipmentSlot.PerformEquipmentAction += (orig, self, equipmentDef2) =>
-            {
-                AspectAbility aspectAbility = FindAspectAbility(equipmentDef2);
-                if (aspectAbility != null && aspectAbility.onUseOverride != null)
-                {
-                    return aspectAbility.onUseOverride(self);
-                }
-                return orig(self, equipmentDef2);
-            };
-
             // make Jarlyk's EquipmentDurability not affect enemies
             if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(JarlykMods.Durability.DurabilityPlugin.PluginGuid))
             {
@@ -328,7 +318,6 @@ namespace AspectAbilities
     {
         public float aiMaxUseDistance = 60f;
         public float aiMaxUseHealthFraction = 0.5f;
-        public System.Func<EquipmentSlot, bool> onUseOverride;
     }
 
     public class AspectAbilitiesContent : IContentPackProvider

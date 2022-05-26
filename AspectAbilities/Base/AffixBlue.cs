@@ -29,8 +29,6 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Overloading", RoR2Content.Equipment.AffixBlue, 7f, 1000f));
-
             NetworkingAPI.RegisterMessageType<OverloadingBlinkController.SyncFire>();
 
             On.RoR2.CharacterBody.Awake += (orig, self) =>
@@ -39,7 +37,7 @@ namespace AspectAbilities
                 self.gameObject.AddComponent<OverloadingBlinkController>();
             };
 
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Overloading", RoR2Content.Equipment.AffixBlue, 7f, 1000f, onUseOverride: (self) =>
             {
                 // teleport to the cursor
                 float maxDistance = 2000f;
@@ -118,7 +116,7 @@ namespace AspectAbilities
                     return false;
                 }
                 return false;
-            };
+            }));
         }
 
         public class OverloadingBlinkController : NetworkBehaviour

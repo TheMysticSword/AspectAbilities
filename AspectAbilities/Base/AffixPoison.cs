@@ -58,8 +58,6 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Malachite", RoR2Content.Equipment.AffixPoison, 90f));
-
             malachiteUrchinOrbitalMaster = PrefabAPI.InstantiateClone(LegacyResourcesAPI.Load<GameObject>("Prefabs/CharacterMasters/UrchinTurretMaster"), "AspectAbilitiesMalachiteUrchinOrbitalMaster", false);
 
             malachiteUrchinOrbitalBody = PrefabAPI.InstantiateClone(LegacyResourcesAPI.Load<GameObject>("Prefabs/CharacterBodies/UrchinTurretBody"), "AspectAbilitiesMalachiteUrchinOrbitalBody", false);
@@ -111,13 +109,12 @@ namespace AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<MalachiteOrbitalController>();
             };
-
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Malachite", RoR2Content.Equipment.AffixPoison, 90f, onUseOverride: (self) =>
             {
                 MalachiteOrbitalController orbitalController = self.characterBody.GetComponent<MalachiteOrbitalController>();
                 orbitalController.respawn += orbitalController.totalNormal;
                 return true;
-            };
+            }));
         }
 
         public class MalachiteOrbitalController : NetworkBehaviour

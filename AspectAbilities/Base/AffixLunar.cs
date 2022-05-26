@@ -27,8 +27,6 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Perfected", RoR2Content.Equipment.AffixLunar, 45f));
-
             shellPrepSound = ScriptableObject.CreateInstance<NetworkSoundEventDef>();
             shellPrepSound.eventName = "Play_lunar_golem_attack2_buildUp";
             AspectAbilitiesContent.Resources.networkSoundEventDefs.Add(shellPrepSound);
@@ -37,7 +35,7 @@ namespace AspectAbilities
             shellUseSound.eventName = "Play_lunar_golem_attack2_shieldActivate";
             AspectAbilitiesContent.Resources.networkSoundEventDefs.Add(shellUseSound);
 
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Perfected", RoR2Content.Equipment.AffixLunar, 45f, onUseOverride: (self) =>
             {
                 EffectData effectData = new EffectData
                 {
@@ -51,7 +49,7 @@ namespace AspectAbilities
                 component.activate = true;
                 component.prepTime = 1f;
                 return true;
-            };
+            }));
         }
 
         public static AspectAbilitiesAffixLunar GetAffixComponent(GameObject obj)

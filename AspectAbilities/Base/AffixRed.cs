@@ -83,8 +83,6 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Blazing", RoR2Content.Equipment.AffixRed, 7f));
-
             // create blazing missile prefab
             fireMissile = PrefabAPI.InstantiateClone(LegacyResourcesAPI.Load<GameObject>("Prefabs/Projectiles/MageFireboltBasic"), "AspectAbilitiesFireMissile", false);
             ConfigOptions.ConfigurableValue.CreateFloat(
@@ -229,12 +227,11 @@ namespace AspectAbilities
                 orig(self);
                 self.gameObject.AddComponent<BlazingMissileLauncher>();
             };
-
-            aspectAbility.onUseOverride = (self) =>
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Blazing", RoR2Content.Equipment.AffixRed, 7f, onUseOverride: (self) =>
             {
                 self.characterBody.GetComponent<BlazingMissileLauncher>().ammo += missileCount;
                 return true;
-            };
+            }));
         }
 
         public class BlazingMissileLauncher : NetworkBehaviour

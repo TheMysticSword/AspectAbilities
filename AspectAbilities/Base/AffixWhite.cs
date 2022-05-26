@@ -61,8 +61,6 @@ namespace AspectAbilities
 
         public override void OnLoad()
         {
-            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Glacial", RoR2Content.Equipment.AffixWhite, 45f));
-
             AspectAbilitiesContent.Resources.entityStateTypes.Add(typeof(GlacialWardDeath));
 
             // create glacial ward prefab
@@ -256,7 +254,9 @@ namespace AspectAbilities
             AspectAbilitiesContent.Resources.effectPrefabs.Add(iceCrystalExplosionEffect);
             AspectAbilitiesContent.Resources.projectilePrefabs.Add(iceCrystalProjectile);
 
-            aspectAbility.onUseOverride = (self) =>
+            BodyCatalog.availability.CallWhenAvailable(() => iceCrystalBodyIndex = body.bodyIndex);
+
+            EquipmentCatalog.availability.CallWhenAvailable(() => Setup("Glacial", RoR2Content.Equipment.AffixWhite, 45f, onUseOverride: (self) =>
             {
                 // spawn a health-reducing crystal ward
                 Ray aimRay = self.InvokeMethod<Ray>("GetAimRay");
@@ -308,9 +308,7 @@ namespace AspectAbilities
                     return true;
                 }
                 return false;
-            };
-
-            BodyCatalog.availability.CallWhenAvailable(() => iceCrystalBodyIndex = body.bodyIndex);
+            }));
         }
 
         private void RecalculateStatsAPI_GetStatCoefficients(CharacterBody sender, RecalculateStatsAPI.StatHookEventArgs args)
