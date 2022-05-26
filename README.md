@@ -1,6 +1,6 @@
 ﻿# Aspect Abilities
 Adds on-use abilities to elite aspects.  
-Can be configured to allow enemies to use aspects as well.
+Can be configured to add elite aspects to Enigma & Bottled Chaos pools and to let enemies use aspects.
 
 ---
 ###### Blazing - fire a seeking missile (7s)
