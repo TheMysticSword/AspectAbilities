@@ -82,7 +82,7 @@ namespace AspectAbilities
                     buffPulseObject.SetActive(true);
                     NetworkServer.Spawn(buffPulseObject);
                     BuffPulseController healPulseController = buffPulseObject.GetComponent<BuffPulseController>();
-                    healPulseController.Fire(self.characterBody.corePosition, affixHauntedWard.GetComponent<BuffWard>().radius, 0.33f, AspectAbilitiesContent.Buffs.AspectAbilities_HauntedDodge.buffIndex, buffDuration, self.characterBody.teamComponent.teamIndex);
+                    healPulseController.Fire(self.characterBody.corePosition, affixHauntedWard.GetComponent<BuffWard>().radius, 0.66f, AspectAbilitiesContent.Buffs.AspectAbilities_HauntedDodge.buffIndex, buffDuration, self.characterBody.teamComponent.teamIndex);
                 }
                 return true;
             };
