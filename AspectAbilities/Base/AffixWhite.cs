@@ -22,6 +22,7 @@ namespace AspectAbilities
         public static SpawnCard iceCrystalSpawnCard;
         public static GameObject iceCrystalExplosionEffect;
         public static Color iceCrystalColor = new Color(209f / 255f, 236f / 255f, 236f / 255f);
+        public static BodyIndex iceCrystalBodyIndex = BodyIndex.None;
 
         public static ConfigOptions.ConfigurableValue<float> flyTime = ConfigOptions.ConfigurableValue.CreateFloat(
             AspectAbilitiesPlugin.PluginGUID,
@@ -129,6 +130,7 @@ namespace AspectAbilities
                     iceCrystal.GetComponent<DestroyOnTimer>().duration = newValue;
                 }
             );
+            RecalculateStatsAPI.GetStatCoefficients += RecalculateStatsAPI_GetStatCoefficients;
             // replace the pink time crystal material with an ice material
             CharacterModel.RendererInfo[] rendererInfos = model.baseRendererInfos;
             var mat = Material.Instantiate(Addressables.LoadAssetAsync<Material>("RoR2/Base/Common/VFX/matIcePillarBase.mat").WaitForCompletion());
@@ -307,6 +309,16 @@ namespace AspectAbilities
                 }
                 return false;
             };
+
+            BodyCatalog.availability.CallWhenAvailable(() => iceCrystalBodyIndex = body.bodyIndex);
+        }
+
+        private void RecalculateStatsAPI_GetStatCoefficients(CharacterBody sender, RecalculateStatsAPI.StatHookEventArgs args)
+        {
+            if (sender.bodyIndex == iceCrystalBodyIndex)
+            {
+                args.levelMultAdd += Run.instance.ambientLevelFloor - 1f;
+            }
         }
 
         public class GlacialWardController : MonoBehaviour
