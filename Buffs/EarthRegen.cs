@@ -50,7 +50,7 @@ namespace AspectAbilities.Buffs
 
         private void RecalculateStatsAPI_GetStatCoefficients(CharacterBody sender, RecalculateStatsAPI.StatHookEventArgs args)
         {
-            if (sender.HasBuff(buffDef)) args.baseRegenAdd += regenBonus;
+            if (sender.HasBuff(buffDef)) args.baseRegenAdd += regenBonus * (1f + (sender.level - 1f) * 0.2f);
         }
     }
 }
