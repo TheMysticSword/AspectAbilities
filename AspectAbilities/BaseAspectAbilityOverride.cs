@@ -36,6 +36,34 @@ namespace AspectAbilities
                     equipmentDef.cooldown = newValue;
                 }
             );
+            ConfigOptions.ConfigurableValue.CreateBool(
+                AspectAbilitiesPlugin.PluginGUID,
+                AspectAbilitiesPlugin.PluginName,
+                AspectAbilitiesPlugin.config,
+                optionsSection,
+                "Enigma Compatible",
+                false,
+                "Should this ability appear in the Artifact of Enigma pool? (Changes to this value take effect only at the start of a new run)",
+                useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry,
+                onChanged: (newValue) =>
+                {
+                    equipmentDef.enigmaCompatible = newValue;
+                }
+            );
+            ConfigOptions.ConfigurableValue.CreateBool(
+                AspectAbilitiesPlugin.PluginGUID,
+                AspectAbilitiesPlugin.PluginName,
+                AspectAbilitiesPlugin.config,
+                optionsSection,
+                "Can Be Randomly Triggered",
+                false,
+                "Should this ability appear in Bottled Chaos pool (DLC1)? (Changes to this value take effect only at the start of a new run)",
+                useDefaultValueConfigEntry: AspectAbilitiesPlugin.ignoreBalanceChanges.bepinexConfigEntry,
+                onChanged: (newValue) =>
+                {
+                    equipmentDef.canBeRandomlyTriggered = newValue;
+                }
+            );
             LanguageManager.appendTokens.Add(equipmentDef.pickupToken);
             ConfigOptions.ConfigurableValue.CreateFloat(
                 AspectAbilitiesPlugin.PluginGUID,
