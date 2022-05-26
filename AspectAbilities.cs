@@ -189,50 +189,51 @@ namespace AspectAbilities
 
         public static void TryUseAspect(CharacterBody body)
         {
-            if (enemiesCanUseAspects)
+            if (body.equipmentSlot && body.equipmentSlot.stock > 0 && body.inputBank && !body.isPlayerControlled)
             {
-                if (body.equipmentSlot && body.equipmentSlot.stock > 0 && body.inputBank && !body.isPlayerControlled)
+                AspectAbility aspectAbility = FindAspectAbility(body.equipmentSlot.equipmentIndex);
+                if (aspectAbility != null)
                 {
-                    var difficulty = DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue;
-                    var stage = Run.instance.stageClearCount + 1;
-                    if (difficulty <= 1f && stage < enemyStageRequirementDrizzle) return;
-                    else if (difficulty > 1f && difficulty < 3f && stage < enemyStageRequirementRainstorm) return;
-                    else if (difficulty >= 3f && stage < enemyStageRequirementMonsoon) return;
-
-                    AspectAbility aspectAbility = FindAspectAbility(body.equipmentSlot.equipmentIndex);
-                    if (aspectAbility != null)
+                    if (body.teamComponent.teamIndex != TeamIndex.Player)
                     {
-                        AspectAbilitiesBodyFields bodyFields = body.GetComponent<AspectAbilitiesBodyFields>();
-                        if (bodyFields && bodyFields.aiCanUse)
-                        {
-                            bodyFields.aiCanUse = false;
+                        if (!enemiesCanUseAspects) return;
+                        var difficulty = DifficultyCatalog.GetDifficultyDef(Run.instance.selectedDifficulty).scalingValue;
+                        var stage = Run.instance.stageClearCount + 1;
+                        if (difficulty <= 1f && stage < enemyStageRequirementDrizzle) return;
+                        else if (difficulty > 1f && difficulty < 3f && stage < enemyStageRequirementRainstorm) return;
+                        else if (difficulty >= 3f && stage < enemyStageRequirementMonsoon) return;
+                    }
 
-                            EntityStateMachine[] stateMachines = body.gameObject.GetComponents<EntityStateMachine>();
-                            foreach (EntityStateMachine stateMachine in stateMachines)
+                    AspectAbilitiesBodyFields bodyFields = body.GetComponent<AspectAbilitiesBodyFields>();
+                    if (bodyFields && bodyFields.aiCanUse)
+                    {
+                        bodyFields.aiCanUse = false;
+
+                        EntityStateMachine[] stateMachines = body.gameObject.GetComponents<EntityStateMachine>();
+                        foreach (EntityStateMachine stateMachine in stateMachines)
+                        {
+                            if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
                             {
-                                if (stateMachine.initialStateType.stateType.IsInstanceOfType(stateMachine.state) && stateMachine.initialStateType.stateType != stateMachine.mainStateType.stateType)
+                                return;
+                            }
+                        }
+
+                        if (aspectAbility.aiMaxUseDistance <= 0f) return;
+                        if (aspectAbility.aiMaxUseDistance != Mathf.Infinity && body.master)
+                        {
+                            BaseAI[] aiComponents = body.master.aiComponents;
+                            foreach (BaseAI ai in aiComponents)
+                            {
+                                if (ai.currentEnemy.bestHurtBox && Vector3.Distance(body.corePosition, ai.currentEnemy.bestHurtBox.transform.position) > aspectAbility.aiMaxUseDistance)
                                 {
                                     return;
                                 }
                             }
-
-                            if (aspectAbility.aiMaxUseDistance <= 0f) return;
-                            if (aspectAbility.aiMaxUseDistance != Mathf.Infinity && body.master)
-                            {
-                                BaseAI[] aiComponents = body.master.aiComponents;
-                                foreach (BaseAI ai in aiComponents)
-                                {
-                                    if (ai.currentEnemy.bestHurtBox && Vector3.Distance(body.corePosition, ai.currentEnemy.bestHurtBox.transform.position) > aspectAbility.aiMaxUseDistance)
-                                    {
-                                        return;
-                                    }
-                                }
-                            }
-
-                            if (body.healthComponent && body.healthComponent.combinedHealthFraction > aspectAbility.aiMaxUseHealthFraction) return;
-                            
-                            body.inputBank.activateEquipment.PushState(true);
                         }
+
+                        if (body.healthComponent && body.healthComponent.combinedHealthFraction > aspectAbility.aiMaxUseHealthFraction) return;
+
+                        body.inputBank.activateEquipment.PushState(true);
                     }
                 }
             }
