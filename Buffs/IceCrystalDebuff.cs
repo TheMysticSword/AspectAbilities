@@ -90,7 +90,7 @@ namespace AspectAbilities.Buffs
                 var stacks = self.timedBuffs.FindAll(x => x.buffIndex == AspectAbilitiesContent.Buffs.AspectAbilities_IceCrystalDebuff.buffIndex);
                 for (var i = 0; i < stacks.Count; i++)
                 {
-                    stacks[i].timer = duration * (gradualDecay ? ((float)(i + 1) / (float)stacks.Count) : 1f);
+                    stacks[i].timer = duration * Mathf.Min(gradualDecay ? ((float)(i + 1) / (float)stacks.Count) : 1f, 1f);
                 }
             };
 
