@@ -15,7 +15,7 @@ namespace AspectAbilities.Buffs
             AspectAbilitiesPlugin.config,
             "Mending (DLC1)",
             "Regen",
-            12.5f,
+            30f,
             0f,
             1000000f,
             "Health regeneration from the buff (in HP/s)",
