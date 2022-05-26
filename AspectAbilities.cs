@@ -70,7 +70,7 @@ namespace AspectAbilities
             config,
             "Enemy Aspect Usage",
             "Stage Requirement (Drizzle)",
-            6,
+            3,
             0,
             1000,
             "Enemies can use aspects beginning from this stage on Drizzle difficulty and below."
