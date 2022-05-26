@@ -249,7 +249,7 @@ namespace AspectAbilities
                 {
                     displayedEffect.transform.localScale = Vector3.one * r;
                 }
-                if (progress < 1)
+                if (progress < 1f)
                 {
                     sphereSearch.radius = r;
                     sphereSearch.RefreshCandidates().FilterCandidatesByHurtBoxTeam(teamMask).FilterCandidatesByDistinctHurtBoxEntities().GetHurtBoxes(hurtBoxesList);
@@ -265,8 +265,8 @@ namespace AspectAbilities
                             }
                             Util.PlaySound("Play_item_proc_TPhealingNova_hitPlayer", healthComponent.gameObject);
                         }
-                        hurtBoxesList.Clear();
                     }
+                    hurtBoxesList.Clear();
                     progress += rate * Time.deltaTime;
                     if (progress > 1f) progress = 1f;
                 }
