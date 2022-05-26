@@ -12,7 +12,7 @@ namespace AspectAbilities
 
         public override void Load()
         {
-            aspectAbility = new AspectAbility();
+            aspectAbility = ScriptableObject.CreateInstance<AspectAbility>();
             OnLoad();
             asset = aspectAbility;
         }
