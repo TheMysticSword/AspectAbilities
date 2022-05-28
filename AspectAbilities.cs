@@ -164,7 +164,6 @@ namespace AspectAbilities
             // create default AspectAbility instances for modded aspects
             RoR2Application.onLoad += () =>
             {
-                if (beforeAspectAutoRegister != null) beforeAspectAutoRegister();
                 foreach (var aspect in EliteCatalog.eliteDefs.Where(x => x.eliteEquipmentDef != null).Select(x => x.eliteEquipmentDef).Distinct())
                 {
                     if (FindAspectAbility(aspect) == null)
@@ -176,8 +175,6 @@ namespace AspectAbilities
                 }
             };
         }
-
-        public static System.Action beforeAspectAutoRegister;
 
         public static void TryUseAspect(CharacterBody body)
         {
