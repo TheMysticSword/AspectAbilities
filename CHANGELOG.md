@@ -1,4 +1,35 @@
-﻿#### 1.4.11:
+﻿#### 2.0.0:
+* Now works on the 1.2.3 version of the game
+* Most of the values in the mod are now configurable
+* Added Risk of Options support
+* Added abilities to DLC1 elite aspects
+* Blazing:
+	* Cooldown: ~~15s~~ ⇒ 7s
+	* Missile Count: ~~12~~ ⇒ 1
+	* Explosion Radius: ~~2m~~ ⇒ 10m
+	* Damage (when used by players): ~~300%~~ ⇒ 700%
+	* Damage (when used by enemies): ~~300%~~ ⇒ 100%
+* Overloading:
+	* Cooldown: ~~10s~~ ⇒ 7s
+* Glacial:
+	* Crystal HP: ~~110~~ ⇒ 160
+	* Crystal Regen: ~~0 HP/s~~ ⇒ 5 HP/s
+	* Debuff now locks skills instead of reducing maximum health
+	* Crystal range now shrinks the less health it has
+	* Removed max crystals per team cap
+	* Crystals now self-destruct in 20 seconds
+* Malachite:
+	* Urchin Damage: ~~54~~ ⇒ 18
+* Celestine:
+	* Cooldown: ~~7s~~ ⇒ 45s
+	* Now gives allies a temporary dodge chance buff instead of healing them
+* Default stage requirement for enemies to use aspects:
+	* Drizzle: ~~11~~ ⇒ 3
+	* Rainstorm: ~~6~~ ⇒ 3
+		* These changes should make the mod work more similarly to RoR1's hard elites system, where elites gained extra effects starting from stage 3 on Rainstorm & Drizzle and from stage 1 on Monsoon
+* Enemies no longer use aspects by default. This feature is now manually enabled in the config
+* Changed the mod GUID from `com.TheMysticSword.AspectAbilities` to `com.themysticsword.aspectabilities`
+#### 1.4.11:
 * Fixed console error spam when an enemy has an equipment but it's not an elite aspect
 #### 1.4.10:
 * Overloading:
