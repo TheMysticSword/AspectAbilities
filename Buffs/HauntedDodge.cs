@@ -14,7 +14,7 @@ namespace AspectAbilities.Buffs
             AspectAbilitiesPlugin.config,
             "Celestine",
             "Dodge Chance",
-            20f,
+            33f,
             0f,
             100f,
             "How much dodge chance should the buff give to allies (in %)",
