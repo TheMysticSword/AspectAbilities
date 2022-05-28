@@ -19,7 +19,8 @@ namespace AspectAbilities
 
         public void Setup(string optionsSection, EquipmentDef equipmentDef, float cooldown, float aiMaxUseDistance = 60f, float aiMaxUseHealthFraction = 0.5f, System.Func<EquipmentSlot, bool> onUseOverride = null)
         {
-            AspectAbilitiesPlugin.RegisterAspectAbility(equipmentDef, aspectAbility);
+            aspectAbility.equipmentDef = equipmentDef;
+            AspectAbilitiesPlugin.RegisterAspectAbility(aspectAbility);
             ConfigOptions.ConfigurableValue.CreateFloat(
                 AspectAbilitiesPlugin.PluginGUID,
                 AspectAbilitiesPlugin.PluginName,
