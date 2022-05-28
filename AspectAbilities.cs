@@ -169,7 +169,9 @@ namespace AspectAbilities
                 {
                     if (FindAspectAbility(aspect) == null)
                     {
-                        RegisterAspectAbility(aspect, new AspectAbility());
+                        var aspectAbility = ScriptableObject.CreateInstance<AspectAbility>();
+                        aspectAbility.equipmentDef = aspect;
+                        RegisterAspectAbility(aspectAbility);
                     }
                 }
             };
