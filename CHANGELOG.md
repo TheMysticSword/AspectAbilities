@@ -1,4 +1,6 @@
-﻿#### 2.0.0:
+﻿#### 2.0.1:
+* Fixed the mod failing to load if Risk of Options wasn't installed
+#### 2.0.0:
 * Now works on the 1.2.3 version of the game
 * Most of the values in the mod are now configurable
 * Added Risk of Options support
