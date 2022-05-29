@@ -35,7 +35,7 @@ namespace AspectAbilities
     {
         public const string PluginGUID = "com.themysticsword.aspectabilities";
         public const string PluginName = "AspectAbilities";
-        public const string PluginVersion = "2.0.0";
+        public const string PluginVersion = "2.0.1";
 
         public static System.Reflection.BindingFlags bindingFlagAll = (System.Reflection.BindingFlags)(-1);
 
@@ -104,7 +104,7 @@ namespace AspectAbilities
             executingAssembly = Assembly.GetExecutingAssembly();
 
             assetBundle = AssetBundle.LoadFromFile(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Info.Location), "aspectabilitiesassetbundle"));
-            MysticsRisky2Utils.SoftDependencies.SoftDependencyManager.RiskOfOptionsDependency.RegisterModInfo(PluginGUID, PluginName, "Adds on-use abilities to elite aspects", assetBundle.LoadAsset<Sprite>("Assets/Mod Icons/AspectAbilities.png"));
+            if (MysticsRisky2Utils.SoftDependencies.SoftDependencyManager.RiskOfOptionsDependency.enabled) MysticsRisky2Utils.SoftDependencies.SoftDependencyManager.RiskOfOptionsDependency.RegisterModInfo(PluginGUID, PluginName, "Adds on-use abilities to elite aspects", assetBundle.LoadAsset<Sprite>("Assets/Mod Icons/AspectAbilities.png"));
 
             LanguageManager.Init();
 

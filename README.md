@@ -36,6 +36,8 @@ Can be configured to add elite aspects to Enigma & Bottled Chaos pools and to le
 
 ---
 ### Changelog:
+#### 2.0.1:
+* Fixed the mod failing to load if Risk of Options wasn't installed
 #### 2.0.0:
 * Now works on the 1.2.3 version of the game
 * Most of the values in the mod are now configurable
